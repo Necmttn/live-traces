@@ -1,0 +1,20 @@
+{
+  "name": "live-traces-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*", "examples/*", "apps/*"],
+  "scripts": {
+    "lint": "bun --filter '*' lint",
+    "typecheck": "bun --filter '*' typecheck",
+    "test": "bun --filter '*' test",
+    "build": "bun --filter '*' build",
+    "demo": "bun --filter demo-effect dev",
+    "site": "bun --filter site dev"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  },
+  "packageManager": "bun@1.2.0"
+}

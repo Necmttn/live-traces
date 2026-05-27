@@ -1,0 +1,88 @@
+{
+  "name": "live-traces",
+  "version": "0.1.0",
+  "description": "Real-time Effect span streaming to frontend UIs. Stream traces from any backend to React with zero overhead.",
+  "keywords": [
+    "effect",
+    "tracing",
+    "telemetry",
+    "opentelemetry",
+    "spans",
+    "observability",
+    "react",
+    "live",
+    "streaming",
+    "sse",
+    "websocket"
+  ],
+  "license": "Apache-2.0",
+  "author": "Necmettin Karakaya <necmettin.karakaya@gmail.com>",
+  "homepage": "https://live-traces.necmttn.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/necmttn/live-traces.git",
+    "directory": "packages/live-traces"
+  },
+  "bugs": {
+    "url": "https://github.com/necmttn/live-traces/issues"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src",
+    "react",
+    "index.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/src/types.d.ts",
+      "import": "./dist/src/types.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
+    },
+    "./transports/sse": {
+      "types": "./dist/src/transports/sse.d.ts",
+      "import": "./dist/src/transports/sse.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist .tsbuildinfo",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "echo 'no lint configured'",
+    "prepublishOnly": "bun run clean && bun run build"
+  },
+  "peerDependencies": {
+    "effect": ">=3.10.0",
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "effect": "^3.18.0",
+    "react": "^19.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}
