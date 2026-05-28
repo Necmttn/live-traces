@@ -9,7 +9,10 @@
     "typecheck": "bun --filter '*' typecheck",
     "test": "bun --filter '*' test",
     "build": "bun --filter '*' build",
-    "demo": "bun --filter demo-effect dev",
+    "demo": "bun --filter demo-sse dev",
+    "demo:sse": "bun --filter demo-sse dev",
+    "demo:ws": "bun --filter demo-ws dev",
+    "demo:ds": "bun --filter demo-durable-streams dev",
     "site": "bun --filter site dev"
   },
   "devDependencies": {

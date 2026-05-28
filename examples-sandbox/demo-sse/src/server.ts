@@ -121,4 +121,4 @@ Bun.serve({
 });
 
 // eslint-disable-next-line no-console
-console.log(`[demo-effect] server http://localhost:${PORT}`);
+console.log(`[demo-sse] server http://localhost:${PORT}`);

@@ -1,0 +1,29 @@
+{
+  "name": "demo-sse",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n server,web -c blue,magenta \"bun run server\" \"bun run web\"",
+    "server": "bun run --hot src/server.ts",
+    "web": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "echo 'no tests'"
+  },
+  "dependencies": {
+    "effect": "^3.18.0",
+    "livetrace": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/bun": "^1.2.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "concurrently": "^9.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^7.0.0"
+  }
+}

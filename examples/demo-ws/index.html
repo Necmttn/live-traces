@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>livetrace · demo-ws</title>
+        <style>
+            :root {
+                color-scheme: dark;
+                --bg: #0a0a0b;
+                --panel: #131316;
+                --border: #26262c;
+                --text: #e7e7ea;
+                --muted: #8a8a93;
+                --accent: #7c5cff;
+                --ok: #22c55e;
+                --err: #ef4444;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+                font-family:
+                    -apple-system,
+                    BlinkMacSystemFont,
+                    "Segoe UI",
+                    Roboto,
+                    sans-serif;
+                background: var(--bg);
+                color: var(--text);
+            }
+            #root {
+                min-height: 100vh;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="root"></div>
+        <script type="module" src="/src/web/main.tsx"></script>
+    </body>
+</html>

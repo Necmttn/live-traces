@@ -1,5 +1,5 @@
 {
-  "name": "demo-effect",
+  "name": "demo-durable-streams",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,6 +12,8 @@
     "test": "echo 'no tests'"
   },
   "dependencies": {
+    "@durable-streams/client": "^0.2.3",
+    "@durable-streams/server": "^0.3.4",
     "effect": "^3.18.0",
     "livetrace": "workspace:*",
     "react": "^19.0.0",

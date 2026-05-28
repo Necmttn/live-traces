@@ -12,12 +12,14 @@ Wrap a workflow in `withTrace`, mount the React hooks, and the user sees every s
 ```
 livetrace/
 ├── packages/
-│   └── livetrace/         # The npm package
-├── examples/
-│   └── demo-effect/         # Runnable demo - Effect backend + SSE + React frontend
+│   └── livetrace/                 # The npm package
+├── examples/                       # One runnable demo per transport
+│   ├── demo-sse/                  # Effect backend → SSE → React UI
+│   ├── demo-ws/                   # Effect backend → WebSocket → React UI
+│   └── demo-durable-streams/      # Effect backend → @durable-streams/server → React UI
 ├── apps/
-│   └── site/                # Landing page (livetrace.necmttn.com)
-└── .github/workflows/       # CI + release-please publish pipeline
+│   └── site/                       # Landing page (livetrace.necmttn.com)
+└── .github/workflows/              # CI + release-please publish pipeline
 ```
 
 ## Develop
@@ -26,7 +28,13 @@ livetrace/
 bun install
 bun --filter livetrace test
 bun --filter livetrace build
-bun demo         # runs the example backend + frontend
+
+# Demo per transport - each spins its own backend + Vite dev server
+bun demo:sse     # SSE  (api :8787, web :5173)
+bun demo:ws      # WS   (api :8788, web :5174)
+bun demo:ds      # DurableStreams (ds :4437, api :8789, web :5175)
+
+bun demo         # alias for demo:sse
 bun site         # runs the landing site locally
 ```
 
