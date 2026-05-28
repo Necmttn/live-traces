@@ -1,3 +1,10 @@
+import { useMemo } from "react";
+
+import { useActiveTraces } from "live-traces/react";
+
+import { ActivityPanel } from "./components/ActivityPanel.js";
+import { Code } from "./components/Code.js";
+import { Constellation } from "./components/Constellation.js";
 import { Demo } from "./components/Demo.js";
 
 export function App() {
@@ -15,72 +22,56 @@ export function App() {
                         <span style={{ color: "var(--muted-2)", fontSize: 12 }}>v0.1.0</span>
                     </div>
                     <div className="nav-meta">
-                        <a className="nav-link" href="https://github.com/necmttn/live-traces">
-                            github
-                        </a>
-                        <a className="nav-link" href="https://www.npmjs.com/package/live-traces">
-                            npm
-                        </a>
-                        <a className="nav-link" href="https://github.com/necmttn/live-traces/blob/main/packages/live-traces/README.md">
-                            readme
-                        </a>
+                        <a className="nav-link" href="https://github.com/necmttn/live-traces">github</a>
+                        <a className="nav-link" href="https://www.npmjs.com/package/live-traces">npm</a>
+                        <a className="nav-link" href="https://github.com/necmttn/live-traces/blob/main/packages/live-traces/README.md">readme</a>
                     </div>
                 </div>
             </nav>
 
-            <main className="container stage">
-                <div className="stage-eyebrow">
-                    <span className="live-dot" />
-                    live · effect spans → react · zero-overhead
-                </div>
-                <h1 className="stage-title">Show your users what your backend is actually doing.</h1>
-                <p className="stage-sub">
-                    Wrap any Effect workflow. Every span - parse a page, embed a chunk, hit a vector store - streams to the
-                    browser as it happens. Same data your observability stack collects, rendered for users.
-                </p>
+            <main className="stage">
+                <Constellation />
+                <div className="container">
+                    <div className="stage-eyebrow">
+                        <span className="live-dot" />
+                        live · effect spans → react · zero-overhead
+                    </div>
+                    <h1 className="stage-title">Show your users what your backend is actually doing.</h1>
+                    <p className="stage-sub">
+                        Wrap any Effect workflow. Every span - parse a page, embed a chunk, hit a vector store - streams to
+                        the browser as it happens. Same data your observability stack collects, rendered for users.
+                    </p>
 
-                <Demo />
+                    <StageGrid />
 
-                <div className="annotations">
-                    <div className="note">
-                        <div className="n">1</div>
-                        <div className="body">
-                            <h4>Wrap a workflow in <code>withTrace()</code></h4>
-                            <p>
-                                The active scope captures every <code>Effect.withSpan</code> and <code>Effect.log</code>{" "}
-                                call inside it.
-                            </p>
+                    <div className="annotations">
+                        <div className="note">
+                            <div className="n">1</div>
+                            <div className="body">
+                                <h4>Wrap a workflow in <code>withTrace()</code></h4>
+                                <p>The active scope captures every <code>Effect.withSpan</code> and <code>Effect.log</code> call inside it.</p>
+                            </div>
                         </div>
-                    </div>
-                    <div className="note">
-                        <div className="n">2</div>
-                        <div className="body">
-                            <h4>Spans batch + ship over SSE</h4>
-                            <p>
-                                <code>SSETransportLayer</code> fans events to subscribers per scope. Swap in WebSocket
-                                or a durable queue with ~30 lines.
-                            </p>
+                        <div className="note">
+                            <div className="n">2</div>
+                            <div className="body">
+                                <h4>Spans batch + ship over SSE</h4>
+                                <p><code>SSETransportLayer</code> fans events to subscribers per scope. Swap in WebSocket or a durable queue with ~30 lines.</p>
+                            </div>
                         </div>
-                    </div>
-                    <div className="note">
-                        <div className="n">3</div>
-                        <div className="body">
-                            <h4><code>Effect.log</code> arrives in the browser</h4>
-                            <p>
-                                The bundled <code>liveTraceLogger</code> turns every <code>Effect.logInfo</code> /{" "}
-                                <code>logWarning</code> / <code>logError</code> into a <code>SpanEvent</code> on the
-                                active step. The live console above is exactly those events.
-                            </p>
+                        <div className="note">
+                            <div className="n">3</div>
+                            <div className="body">
+                                <h4><code>Effect.log</code> arrives in the browser</h4>
+                                <p>The bundled <code>liveTraceLogger</code> turns every <code>Effect.logInfo</code> / <code>logWarning</code> / <code>logError</code> into a <code>SpanEvent</code> on the active step. The live console above is exactly those events.</p>
+                            </div>
                         </div>
-                    </div>
-                    <div className="note">
-                        <div className="n">4</div>
-                        <div className="body">
-                            <h4>React renders this card live</h4>
-                            <p>
-                                <code>useActiveTraces()</code> + <code>useTraceSteps()</code> - zero-Effect frontend,
-                                works in any React 18+ app.
-                            </p>
+                        <div className="note">
+                            <div className="n">4</div>
+                            <div className="body">
+                                <h4>React renders this card live</h4>
+                                <p><code>useActiveTraces()</code> + <code>useTraceSteps()</code> - zero-Effect frontend, works in any React 18+ app.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -89,26 +80,19 @@ export function App() {
             <section className="container how">
                 <div className="how-head">
                     <h2>How it fits together</h2>
-                    <div className="install">
-                        <b>$ bun add</b> live-traces effect
-                    </div>
+                    <div className="install"><b>$ bun add</b> live-traces effect</div>
                 </div>
 
                 <div className="how-step">
                     <div className="label-col">
                         <span className="step-n">01 · backend</span>
                         <h3>Compose the trace layer</h3>
-                        <p>
-                            <code>LiveTraceLayer</code> wraps your current tracer (native or OpenTelemetry) and pushes
-                            events into a buffered sink. The sink flushes batches to a pluggable transport.
-                        </p>
+                        <p><code>LiveTraceLayer</code> wraps your current tracer (native or OpenTelemetry) and pushes events into a buffered sink. The sink flushes batches to a pluggable transport.</p>
                     </div>
                     <div className="code-col">
-                        <div className="code-bar">
-                            <span className="path">src/runtime.ts</span>
-                            <span>typescript</span>
-                        </div>
-                        <pre className="code-body">{`import { Effect, Layer, Logger } from "effect";
+                        <div className="code-bar"><span className="path">src/runtime.ts</span><span>typescript</span></div>
+                        <div className="code-body">
+                            <Code lang="tsx" code={`import { Effect, Layer, Logger } from "effect";
 import {
     LiveTraceLayer,
     TraceSinkLive,
@@ -126,7 +110,8 @@ export const TraceLive = LiveTraceLayer.pipe(
     Layer.provide(TraceSinkLive({ flushIntervalMs: 100 })),
     Layer.provide(SSETransportLayer),
     Layer.provideMerge(LoggerLive),
-);`}</pre>
+);`} />
+                        </div>
                     </div>
                 </div>
 
@@ -134,17 +119,12 @@ export const TraceLive = LiveTraceLayer.pipe(
                     <div className="label-col">
                         <span className="step-n">02 · workflow</span>
                         <h3>Wrap whatever you're doing</h3>
-                        <p>
-                            <code>step()</code> marks user-visible stages. <code>Effect.log</code> calls inside the
-                            scope become <code>SpanEvent</code>s on the active step.
-                        </p>
+                        <p><code>step()</code> marks user-visible stages. <code>Effect.log</code> calls inside the scope become <code>SpanEvent</code>s on the active step.</p>
                     </div>
                     <div className="code-col">
-                        <div className="code-bar">
-                            <span className="path">src/process.ts</span>
-                            <span>typescript</span>
-                        </div>
-                        <pre className="code-body">{`import { Effect } from "effect";
+                        <div className="code-bar"><span className="path">src/process.ts</span><span>typescript</span></div>
+                        <div className="code-body">
+                            <Code lang="tsx" code={`import { Effect } from "effect";
 import { withTrace, step } from "live-traces";
 
 export const processDocument = (docId: string) =>
@@ -162,7 +142,8 @@ export const processDocument = (docId: string) =>
             label: "Document processing",
             scope: { type: "user", id: userId },
         }),
-    );`}</pre>
+    );`} />
+                        </div>
                     </div>
                 </div>
 
@@ -170,17 +151,12 @@ export const processDocument = (docId: string) =>
                     <div className="label-col">
                         <span className="step-n">03 · frontend</span>
                         <h3>Subscribe and render</h3>
-                        <p>
-                            One <code>EventSource</code>, one <code>getTraceStore().dispatchBatch</code>. The hooks
-                            handle the rest - no Effect dependency, no virtual scroll gymnastics.
-                        </p>
+                        <p>One <code>EventSource</code>, one <code>getTraceStore().dispatchBatch</code>. The hooks handle the rest - no Effect dependency, no virtual scroll gymnastics.</p>
                     </div>
                     <div className="code-col">
-                        <div className="code-bar">
-                            <span className="path">src/ActivityPanel.tsx</span>
-                            <span>tsx</span>
-                        </div>
-                        <pre className="code-body">{`import {
+                        <div className="code-bar"><span className="path">src/ActivityPanel.tsx</span><span>tsx</span></div>
+                        <div className="code-body">
+                            <Code lang="tsx" code={`import {
     getTraceStore,
     useActiveTraces,
     useTraceSteps,
@@ -208,8 +184,27 @@ function TraceCard({ traceId }) {
             ))}
         </ol>
     );
-}`}</pre>
+}`} />
+                        </div>
                     </div>
+                </div>
+            </section>
+
+            <section className="container cta">
+                <span className="cta-eyebrow">
+                    <span className="d" /> ready to stream
+                </span>
+                <h2>Ship a live trace panel today.</h2>
+                <p>
+                    Drop the layer into your Effect runtime. Wire the React hooks. Your users see exactly what your
+                    backend is doing - without the OpenTelemetry collector, without polling.
+                </p>
+                <div className="btn-row">
+                    <a className="btn primary" href="https://www.npmjs.com/package/live-traces">Install</a>
+                    <a className="btn secondary" href="https://github.com/necmttn/live-traces#readme">Read the docs</a>
+                </div>
+                <div>
+                    <span className="install-tag"><b>$</b> bun add live-traces effect</span>
                 </div>
             </section>
 
@@ -230,5 +225,25 @@ function TraceCard({ traceId }) {
                 </div>
             </footer>
         </>
+    );
+}
+
+function StageGrid() {
+    const traces = useActiveTraces();
+    const totalEvents = useMemo(() => {
+        let n = 0;
+        for (const t of traces) {
+            for (const span of t.spans.values()) {
+                n += span.events.length;
+            }
+        }
+        return n;
+    }, [traces]);
+
+    return (
+        <div className="stage-grid">
+            <Demo />
+            <ActivityPanel totalEvents={totalEvents} />
+        </div>
     );
 }
