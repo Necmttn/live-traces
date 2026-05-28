@@ -6,6 +6,7 @@ import { ActivityPanel } from "./components/ActivityPanel.js";
 import { Code } from "./components/Code.js";
 import { Constellation } from "./components/Constellation.js";
 import { Demo } from "./components/Demo.js";
+import { LiterateDemo } from "./components/LiterateDemo.js";
 
 export function App() {
     return (
@@ -76,6 +77,17 @@ export function App() {
                     </div>
                 </div>
             </main>
+
+            <section className="container literate-section">
+                <div className="head">
+                    <h2>Watch the code execute</h2>
+                    <p>
+                        Source on the left, what your user sees on the right. The highlighted line is the line that
+                        just emitted the event you see appearing. Auto-loops every few seconds.
+                    </p>
+                </div>
+                <LiterateDemo />
+            </section>
 
             <section className="container how">
                 <div className="how-head">

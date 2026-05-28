@@ -10,6 +10,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TraceEvent } from "live-traces/types";
 import { getTraceStore, useActiveTraces, useTrace, useTraceSteps } from "live-traces/react";
 
+import { CORPUS, preview } from "./corpus.js";
+
 // ----------------------------------------------------------------------------
 // Workflow spec - describes timing + what gets emitted
 // ----------------------------------------------------------------------------
@@ -54,7 +56,7 @@ interface WorkflowDef {
 function genItems(prefix: string, count: number, extra: (i: number) => Record<string, unknown> = () => ({})): ProgressItem[] {
     return Array.from({ length: count }, (_, i) => ({
         name: `${prefix} ${i + 1}/${count}`,
-        attrs: { "ui.kind": "progress", index: i + 1, total: count, ...extra(i) },
+        attrs: { "ui.kind": "progress", index: i + 1, total: count, "chunk.text": preview(CORPUS[i % CORPUS.length]!), ...extra(i) },
     }));
 }
 
@@ -343,7 +345,16 @@ export function Demo() {
                 {traces.length === 0 ? (
                     <div className="stream-empty">no traces · click ▶ to fire one</div>
                 ) : (
-                    traces.slice(0, 4).map((t) => <TraceCard key={t.traceId} traceId={t.traceId} />)
+                    <>
+                        {traces.slice(0, 2).map((t) => (
+                            <TraceCard key={t.traceId} traceId={t.traceId} />
+                        ))}
+                        {traces.length > 2 ? (
+                            <div className="stream-more">
+                                +{traces.length - 2} more in the sidebar
+                            </div>
+                        ) : null}
+                    </>
                 )}
             </div>
         </div>
@@ -424,6 +435,7 @@ function Step({ step, maxDur }: { step: import("live-traces/react").SpanNode; ma
             : ((step.durationMs ?? 0) / maxDur) * 100;
 
     const recentProgress = progressEvents[progressEvents.length - 1];
+    const chunkText = recentProgress?.attributes?.["chunk.text"] as string | undefined;
 
     return (
         <div>
@@ -453,6 +465,12 @@ function Step({ step, maxDur }: { step: import("live-traces/react").SpanNode; ma
                 </div>
                 <div className="dur">{step.durationMs != null ? `${step.durationMs.toFixed(0)}ms` : "…"}</div>
             </div>
+            {step.status === "running" && chunkText ? (
+                <div className="step-preview">
+                    <span className="preview-prefix">now</span>
+                    <span className="preview-text">"{chunkText}"</span>
+                </div>
+            ) : null}
         </div>
     );
 }
