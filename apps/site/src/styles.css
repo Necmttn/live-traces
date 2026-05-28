@@ -1333,9 +1333,23 @@ pre {
     letter-spacing: 0.5px;
 }
 
+.activity-spark .ap-rate {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    text-transform: none;
+    letter-spacing: 0;
+    min-width: 28px;
+    text-align: right;
+}
+
 .activity-spark svg {
-    flex: 1;
+    flex: 1 1 auto;
     height: 18px;
+}
+
+.ap-live-dot.pulse {
+    box-shadow: 0 0 6px var(--accent);
+    animation: brand-pulse 1.4s ease-in-out infinite;
 }
 
 /* ============================================================
