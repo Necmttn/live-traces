@@ -1,70 +1,114 @@
-import { CodeTabs } from "./components/CodeTabs.js";
 import { Demo } from "./components/Demo.js";
 
 export function App() {
     return (
         <>
-            <header className="container">
-                <nav className="nav">
-                    <div className="nav-brand">
-                        <Logo /> live-traces
+            <nav className="nav">
+                <div className="container nav-inner">
+                    <div className="brand">
+                        <div className="brand-dot-row">
+                            <span className="brand-dot" />
+                            <span className="brand-dot" />
+                            <span className="brand-dot" />
+                        </div>
+                        live-traces
+                        <span style={{ color: "var(--muted-2)", fontSize: 12 }}>v0.1.0</span>
                     </div>
-                    <div className="nav-links">
-                        <a href="#features">Features</a>
-                        <a href="#demo">Demo</a>
-                        <a href="#install">Install</a>
-                        <a href="https://github.com/necmttn/live-traces">GitHub</a>
+                    <div className="nav-meta">
+                        <a className="nav-link" href="https://github.com/necmttn/live-traces">
+                            github
+                        </a>
+                        <a className="nav-link" href="https://www.npmjs.com/package/live-traces">
+                            npm
+                        </a>
+                        <a className="nav-link" href="https://github.com/necmttn/live-traces/blob/main/packages/live-traces/README.md">
+                            readme
+                        </a>
                     </div>
-                </nav>
-            </header>
+                </div>
+            </nav>
 
-            <section className="container hero" style={{ borderTop: "none" }}>
-                <span className="hero-eyebrow"><Dot /> Real-time span streaming</span>
-                <h1>
-                    Stream <span className="grad">Effect spans</span><br />
-                    straight into your UI.
-                </h1>
-                <p className="hero-sub">
-                    <code>live-traces</code> wraps the Effect tracer and pushes every span - start, end, log event - to a React store as it happens. Same data your observability stack uses, rendered for users instead of ops.
+            <main className="container stage">
+                <div className="stage-eyebrow">
+                    <span className="live-dot" />
+                    live · effect spans → react · zero-overhead
+                </div>
+                <h1 className="stage-title">Show your users what your backend is actually doing.</h1>
+                <p className="stage-sub">
+                    Wrap any Effect workflow. Every span - parse a page, embed a chunk, hit a vector store - streams to the
+                    browser as it happens. Same data your observability stack collects, rendered for users.
                 </p>
-                <div className="cta-row">
-                    <a className="btn primary" href="#install">Get started</a>
-                    <a className="btn" href="https://github.com/necmttn/live-traces">View on GitHub →</a>
-                </div>
-                <div className="btn-row-meta">
-                    bun add live-traces effect
-                </div>
-            </section>
 
-            <section className="container" id="features">
-                <h2>What you get</h2>
-                <p className="lede">Built on Effect's first-class tracing, designed for the frontend.</p>
-                <div className="grid-3">
-                    <Feature title="Drop-in Tracer decorator" body="One layer. Composes with @effect/opentelemetry - OTel still exports, live-traces just observes. No double instrumentation." />
-                    <Feature title="Wire format is JSON" body="Discriminated union on _tag. Backends in Go, Python, Rust can emit it. Frontend doesn't care where it came from." />
-                    <Feature title="Pluggable transport" body="SSE ships in the box. WebSocket, durable queues, console for dev - implement TraceTransport and you're done." />
-                    <Feature title="Zero-Effect frontend" body="live-traces/react is useSyncExternalStore + a reducer. Drop it into any React 18+ app." />
-                    <Feature title="Per-scope routing" body="Trace events route by scope (team / org / user). Each subscriber sees only its own traces - multi-tenant safe." />
-                    <Feature title="UI-first ergonomics" body="step() marks user-visible stages. liveTraceLogger turns Effect.log calls into SpanEvents on the active step." />
-                </div>
-            </section>
-
-            <section className="container" id="demo">
-                <h2>See it run</h2>
-                <p className="lede">
-                    The cards below are rendered by the same <code>useActiveTraces</code> hook your app would use. Click a button to fire a workflow.
-                </p>
                 <Demo />
-            </section>
 
-            <section className="container">
-                <h2>How it looks in code</h2>
-                <p className="lede">Three files: backend setup, the wrapped workflow, the React panel.</p>
-                <CodeTabs
-                    tabs={[
-                        {
-                            label: "1. backend layer",
-                            code: `import { Layer } from "effect";
+                <div className="annotations">
+                    <div className="note">
+                        <div className="n">1</div>
+                        <div className="body">
+                            <h4>Wrap a workflow in <code>withTrace()</code></h4>
+                            <p>
+                                The active scope captures every <code>Effect.withSpan</code> and <code>Effect.log</code>{" "}
+                                call inside it.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="note">
+                        <div className="n">2</div>
+                        <div className="body">
+                            <h4>Spans batch + ship over SSE</h4>
+                            <p>
+                                <code>SSETransportLayer</code> fans events to subscribers per scope. Swap in WebSocket
+                                or a durable queue with ~30 lines.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="note">
+                        <div className="n">3</div>
+                        <div className="body">
+                            <h4><code>Effect.log</code> arrives in the browser</h4>
+                            <p>
+                                The bundled <code>liveTraceLogger</code> turns every <code>Effect.logInfo</code> /{" "}
+                                <code>logWarning</code> / <code>logError</code> into a <code>SpanEvent</code> on the
+                                active step. The live console above is exactly those events.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="note">
+                        <div className="n">4</div>
+                        <div className="body">
+                            <h4>React renders this card live</h4>
+                            <p>
+                                <code>useActiveTraces()</code> + <code>useTraceSteps()</code> - zero-Effect frontend,
+                                works in any React 18+ app.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <section className="container how">
+                <div className="how-head">
+                    <h2>How it fits together</h2>
+                    <div className="install">
+                        <b>$ bun add</b> live-traces effect
+                    </div>
+                </div>
+
+                <div className="how-step">
+                    <div className="label-col">
+                        <span className="step-n">01 · backend</span>
+                        <h3>Compose the trace layer</h3>
+                        <p>
+                            <code>LiveTraceLayer</code> wraps your current tracer (native or OpenTelemetry) and pushes
+                            events into a buffered sink. The sink flushes batches to a pluggable transport.
+                        </p>
+                    </div>
+                    <div className="code-col">
+                        <div className="code-bar">
+                            <span className="path">src/runtime.ts</span>
+                            <span>typescript</span>
+                        </div>
+                        <pre className="code-body">{`import { Effect, Layer, Logger } from "effect";
 import {
     LiveTraceLayer,
     TraceSinkLive,
@@ -72,111 +116,119 @@ import {
 } from "live-traces";
 import { SSETransportLayer } from "live-traces/transports/sse";
 
+// Replace the default logger so Effect.log → SpanEvent.
+const LoggerLive = Logger.replaceScoped(
+    Logger.defaultLogger,
+    Effect.succeed(liveTraceLogger),
+);
+
 export const TraceLive = LiveTraceLayer.pipe(
     Layer.provide(TraceSinkLive({ flushIntervalMs: 100 })),
     Layer.provide(SSETransportLayer),
-);`,
-                        },
-                        {
-                            label: "2. wrap a workflow",
-                            code: `import { Effect } from "effect";
+    Layer.provideMerge(LoggerLive),
+);`}</pre>
+                    </div>
+                </div>
+
+                <div className="how-step">
+                    <div className="label-col">
+                        <span className="step-n">02 · workflow</span>
+                        <h3>Wrap whatever you're doing</h3>
+                        <p>
+                            <code>step()</code> marks user-visible stages. <code>Effect.log</code> calls inside the
+                            scope become <code>SpanEvent</code>s on the active step.
+                        </p>
+                    </div>
+                    <div className="code-col">
+                        <div className="code-bar">
+                            <span className="path">src/process.ts</span>
+                            <span>typescript</span>
+                        </div>
+                        <pre className="code-body">{`import { Effect } from "effect";
 import { withTrace, step } from "live-traces";
 
 export const processDocument = (docId: string) =>
     Effect.gen(function* () {
+        yield* Effect.logInfo(\`opening \${docId}\`);
+
         yield* step("Parse")(parsePdf(docId));
         yield* step("Embed")(embedChunks(docId));
         yield* step("Index")(indexVectors(docId));
+
+        yield* Effect.logInfo("workflow complete");
     }).pipe(
         withTrace({
             traceId: \`doc:\${docId}\`,
             label: "Document processing",
             scope: { type: "user", id: userId },
         }),
-    );`,
-                        },
-                        {
-                            label: "3. render in React",
-                            code: `import { useActiveTraces, useTraceSteps, getTraceStore } from "live-traces/react";
+    );`}</pre>
+                    </div>
+                </div>
 
-// Connect once at app mount:
+                <div className="how-step">
+                    <div className="label-col">
+                        <span className="step-n">03 · frontend</span>
+                        <h3>Subscribe and render</h3>
+                        <p>
+                            One <code>EventSource</code>, one <code>getTraceStore().dispatchBatch</code>. The hooks
+                            handle the rest - no Effect dependency, no virtual scroll gymnastics.
+                        </p>
+                    </div>
+                    <div className="code-col">
+                        <div className="code-bar">
+                            <span className="path">src/ActivityPanel.tsx</span>
+                            <span>tsx</span>
+                        </div>
+                        <pre className="code-body">{`import {
+    getTraceStore,
+    useActiveTraces,
+    useTraceSteps,
+} from "live-traces/react";
+
 const es = new EventSource(\`/traces/user/\${userId}\`);
 es.onmessage = (msg) =>
     getTraceStore().dispatchBatch(JSON.parse(msg.data));
 
 export function ActivityPanel() {
     const traces = useActiveTraces();
-    return traces.map((t) => <TraceCard key={t.traceId} {...t} />);
+    return traces.map((t) => (
+        <TraceCard key={t.traceId} traceId={t.traceId} />
+    ));
 }
 
-function TraceCard({ traceId, label, status }) {
+function TraceCard({ traceId }) {
     const steps = useTraceSteps(traceId);
     return (
-        <article>
-            <h3>{label} · {status}</h3>
-            <ol>
-                {steps.map((s) => (
-                    <li key={s.spanId}>
-                        {s.name} - {s.status}
-                        {s.durationMs && \` (\${s.durationMs.toFixed(0)}ms)\`}
-                    </li>
-                ))}
-            </ol>
-        </article>
+        <ol>
+            {steps.map((s) => (
+                <li key={s.spanId}>
+                    {s.name} - {s.status}
+                </li>
+            ))}
+        </ol>
     );
-}`,
-                        },
-                    ]}
-                />
-            </section>
-
-            <section className="container" id="install">
-                <h2>Install</h2>
-                <p className="lede">Requires Effect 3.10+ and React 18+ (React is optional).</p>
-                <pre>
-                    <code>{`bun add live-traces effect
-# or
-npm install live-traces effect
-# or
-pnpm add live-traces effect`}</code>
-                </pre>
-                <p style={{ color: "var(--muted)", fontSize: 14, marginTop: 16 }}>
-                    Full quickstart, OpenTelemetry composition guide, and SSE server example in the{" "}
-                    <a href="https://github.com/necmttn/live-traces/blob/main/packages/live-traces/README.md">package README</a>.
-                </p>
+}`}</pre>
+                    </div>
+                </div>
             </section>
 
             <footer>
-                <div className="container">
-                    <p>
-                        Apache-2.0 licensed · built by <a href="https://necmttn.com">@necmttn</a> · source on{" "}
+                <div className="container footer-inner">
+                    <div className="left">
+                        <span>Apache-2.0</span>
+                        <span>·</span>
+                        <span>built by @necmttn</span>
+                        <span>·</span>
+                        <span>extracted from quera</span>
+                    </div>
+                    <div className="right">
                         <a href="https://github.com/necmttn/live-traces">GitHub</a>
-                    </p>
+                        <a href="https://www.npmjs.com/package/live-traces">npm</a>
+                        <a href="https://necmttn.com">@necmttn</a>
+                    </div>
                 </div>
             </footer>
         </>
     );
-}
-
-function Feature({ title, body }: { title: string; body: string }) {
-    return (
-        <div className="feature">
-            <h3>{title}</h3>
-            <p>{body}</p>
-        </div>
-    );
-}
-
-function Logo() {
-    return (
-        <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
-            <circle cx="8" cy="16" r="3" fill="#7c5cff" />
-            <circle cx="16" cy="16" r="3" fill="#7c5cff" opacity="0.65" />
-            <circle cx="24" cy="16" r="3" fill="#7c5cff" opacity="0.3" />
-        </svg>
-    );
-}
-
-function Dot() {
-    return <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent)", display: "inline-block" }} />;
 }

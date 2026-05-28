@@ -1,251 +1,349 @@
 /**
- * In-page interactive demo. No backend - events are generated client-side
- * with realistic timing and fed into the same TraceStore that the real
- * package would use. This makes the marketing page fully static-deployable
- * while still rendering the actual library UI.
+ * In-browser demo. Generates a fine-grained TraceEvent stream:
+ *   - Progress items   →  drive the "N / total" counter + bar
+ *   - Effect.log calls →  stream into the live log console
+ *
+ * Both kinds flow through the package's real TraceStore + hooks.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { TraceEvent } from "live-traces/types";
 import { getTraceStore, useActiveTraces, useTrace, useTraceSteps } from "live-traces/react";
 
-let counter = 0;
-const sid = () => `s${(++counter).toString(16).padStart(8, "0")}`;
-const tid = (label: string) => `${label}:${Date.now()}-${counter}`;
+// ----------------------------------------------------------------------------
+// Workflow spec - describes timing + what gets emitted
+// ----------------------------------------------------------------------------
 
-interface StepSpec {
+let _counter = 0;
+const sid = () => `s${(++_counter).toString(16).padStart(8, "0")}`;
+const tid = (doc: string) => `doc:${doc}:${Date.now()}-${_counter}`;
+
+type LogLevel = "Info" | "Warning" | "Error";
+
+interface ProgressItem {
+    readonly name: string;
+    readonly attrs?: Record<string, unknown>;
+}
+
+interface LogPoint {
+    /** Fraction of step duration [0..1] when this log fires. */
+    readonly at: number;
+    readonly level: LogLevel;
+    readonly msg: string;
+}
+
+interface StepDef {
     readonly name: string;
     readonly durationMs: number;
-    /** Inner non-step spans run inside this step. */
-    readonly children?: ReadonlyArray<{ name: string; durationMs: number; attrs?: Record<string, unknown> }>;
-    readonly logs?: ReadonlyArray<{ level: "Info" | "Warning" | "Error"; msg: string; at: number }>;
+    readonly children?: ReadonlyArray<{ name: string; attrs?: Record<string, unknown> }>;
+    /** Fine-grained progress items. Drive the counter, not the log console. */
+    readonly itemsLabel?: string;
+    readonly items?: ReadonlyArray<ProgressItem>;
+    /** Effect.log-style events. Drive the log console. */
+    readonly logs?: ReadonlyArray<LogPoint>;
+    readonly failAtEnd?: boolean;
+    readonly failMessage?: string;
 }
 
-interface WorkflowSpec {
+interface WorkflowDef {
+    readonly docName: string;
     readonly label: string;
-    readonly steps: ReadonlyArray<StepSpec>;
-    readonly fail?: boolean;
+    readonly steps: ReadonlyArray<StepDef>;
 }
 
-const SUCCESS_WORKFLOW: WorkflowSpec = {
-    label: "Processing report.pdf",
-    steps: [
-        {
-            name: "Parse",
-            durationMs: 420,
-            children: [
-                { name: "read-bytes", durationMs: 160 },
-                { name: "extract-text", durationMs: 220 },
-            ],
-            logs: [
-                { level: "Info", msg: "opening report.pdf", at: 20 },
-                { level: "Info", msg: "parsed 12 pages, 4 tables", at: 380 },
-            ],
-        },
-        {
-            name: "Embed",
-            durationMs: 520,
-            children: [
-                { name: "chunk", durationMs: 110 },
-                { name: "openai.embed", durationMs: 360, attrs: { "embeddings.model": "text-embedding-3-small", "embeddings.batch": 32 } },
-            ],
-            logs: [{ level: "Info", msg: "embedded 32 chunks", at: 480 }],
-        },
-        {
-            name: "Index",
-            durationMs: 180,
-            children: [{ name: "vector-store.upsert", durationMs: 140, attrs: { "db.system": "pgvector" } }],
-            logs: [{ level: "Info", msg: "upsert ok", at: 160 }],
-        },
-        {
-            name: "Finalize",
-            durationMs: 90,
-            children: [{ name: "publish-event", durationMs: 70 }],
-            logs: [{ level: "Info", msg: "workflow complete", at: 80 }],
-        },
-    ],
-};
+function genItems(prefix: string, count: number, extra: (i: number) => Record<string, unknown> = () => ({})): ProgressItem[] {
+    return Array.from({ length: count }, (_, i) => ({
+        name: `${prefix} ${i + 1}/${count}`,
+        attrs: { "ui.kind": "progress", index: i + 1, total: count, ...extra(i) },
+    }));
+}
 
-const FAILING_WORKFLOW: WorkflowSpec = {
-    label: "Processing report.pdf",
-    fail: true,
-    steps: [
-        SUCCESS_WORKFLOW.steps[0]!,
-        SUCCESS_WORKFLOW.steps[1]!,
-        {
-            name: "Index",
-            durationMs: 160,
-            children: [{ name: "vector-store.upsert", durationMs: 130, attrs: { "db.system": "pgvector" } }],
-            logs: [{ level: "Error", msg: "vector-store unreachable", at: 130 }],
-        },
-    ],
-};
+function makeWorkflow(opts: { fail?: boolean; doc?: string; chunks?: number }): WorkflowDef {
+    const chunks = opts.chunks ?? 32;
+    const pages = 12;
+    const doc = opts.doc ?? pickDoc();
+    return {
+        docName: doc,
+        label: `Processing ${doc}`,
+        steps: [
+            {
+                name: "Parse",
+                durationMs: 720,
+                itemsLabel: "pages",
+                items: genItems("page", pages),
+                logs: [
+                    { at: 0.02, level: "Info", msg: `opening ${doc}` },
+                    { at: 0.95, level: "Info", msg: `parsed ${pages} pages · 4 tables · 18,402 tokens` },
+                ],
+            },
+            {
+                name: "Chunk",
+                durationMs: 360,
+                itemsLabel: "chunks",
+                items: genItems("chunk", chunks, (i) => ({ tokens: 480 + ((i * 37) % 240) })),
+                logs: [
+                    { at: 0.05, level: "Info", msg: `splitting · target=512 tok · overlap=64` },
+                    { at: 0.92, level: "Info", msg: `produced ${chunks} chunks · avg 542 tok` },
+                ],
+            },
+            {
+                name: "Embed",
+                durationMs: 1180,
+                children: [{ name: "openai.embed", attrs: { "embeddings.model": "text-embedding-3-small" } }],
+                itemsLabel: "embeddings",
+                items: genItems("embed", chunks, (i) => ({ chunk: i + 1, dims: 1536 })),
+                logs: [
+                    { at: 0.05, level: "Info", msg: `POST openai · model=text-embedding-3-small · batch=${chunks}` },
+                    { at: 0.45, level: "Warning", msg: `rate-limited · retrying in 240ms` },
+                    { at: 0.95, level: "Info", msg: `embedded ${chunks} chunks · 1536-dim · 248ms` },
+                ],
+            },
+            {
+                name: "Index",
+                durationMs: 460,
+                children: [{ name: "vector-store.upsert", attrs: { "db.system": "pgvector" } }],
+                itemsLabel: "upserts",
+                items: genItems("upsert", chunks),
+                logs: opts.fail
+                    ? [
+                          { at: 0.1, level: "Info", msg: `connecting to pgvector://primary` },
+                          { at: 0.85, level: "Error", msg: `vector-store unreachable after 3 retries` },
+                      ]
+                    : [
+                          { at: 0.1, level: "Info", msg: `connecting to pgvector://primary` },
+                          { at: 0.95, level: "Info", msg: `indexed ${chunks} vectors · committed txn 0xa8f4` },
+                      ],
+                failAtEnd: opts.fail,
+                failMessage: opts.fail ? "vector-store unreachable" : undefined,
+            },
+            ...(opts.fail
+                ? []
+                : [
+                      {
+                          name: "Finalize",
+                          durationMs: 140,
+                          children: [{ name: "publish-event" }],
+                          logs: [{ at: 0.3, level: "Info", msg: `workflow complete · 32 chunks searchable` }],
+                      } as StepDef,
+                  ]),
+        ],
+    };
+}
 
-/** Run a workflow spec, dispatching events into the store with realistic delays. */
-function runSpec(spec: WorkflowSpec): void {
+const DOC_POOL = ["report-q3.pdf", "research-notes.md", "contract-v2.pdf", "meeting-transcript.txt", "spec-v0.4.md", "design-doc.pdf"];
+let docIdx = 0;
+function pickDoc() {
+    return DOC_POOL[docIdx++ % DOC_POOL.length]!;
+}
+
+// ----------------------------------------------------------------------------
+// Emit a workflow as a real-time stream of TraceEvents.
+// ----------------------------------------------------------------------------
+
+function runWorkflow(def: WorkflowDef): void {
     const store = getTraceStore();
-    const traceId = tid("doc:report.pdf");
+    const traceId = tid(def.docName);
     const rootId = sid();
     const t0 = Date.now();
 
-    store.dispatch({
+    const at = (ms: number, fn: () => void) => window.setTimeout(fn, ms);
+    const dispatch = (e: TraceEvent) => store.dispatch(e);
+
+    dispatch({
         _tag: "TraceStart",
         traceId,
-        label: spec.label,
+        label: def.label,
         scope: { type: "user", id: "demo" },
         timestamp: t0,
     });
-
-    store.dispatch({
+    dispatch({
         _tag: "SpanStart",
         traceId,
         spanId: rootId,
-        name: spec.label,
-        attributes: { "live-trace": true },
+        name: def.label,
+        attributes: { "live-trace": true, doc: def.docName },
         timestamp: t0,
     });
 
     let cursor = 0;
 
-    for (const step of spec.steps) {
+    for (const step of def.steps) {
         const stepId = sid();
         const stepStartAt = cursor;
+        const stepEndAt = cursor + step.durationMs;
+        const stepFailed = !!step.failAtEnd;
 
-        setTimeout(() => {
-            store.dispatch({
+        at(stepStartAt, () =>
+            dispatch({
                 _tag: "SpanStart",
                 traceId,
                 spanId: stepId,
                 parentSpanId: rootId,
                 name: step.name,
-                attributes: { "ui.step": true },
+                attributes: { "ui.step": true, ...(step.itemsLabel ? { "items.label": step.itemsLabel } : {}) },
                 timestamp: Date.now(),
-            });
-        }, stepStartAt);
+            }),
+        );
 
+        // Child spans
         if (step.children) {
-            let childCursor = stepStartAt + 5;
-            for (const child of step.children) {
+            const slot = step.durationMs / Math.max(1, step.children.length);
+            step.children.forEach((c, i) => {
                 const childId = sid();
-                const childStart = childCursor;
-                const childEnd = childCursor + child.durationMs;
-                setTimeout(() => {
-                    store.dispatch({
+                const cStart = stepStartAt + i * slot + 20;
+                const cEnd = cStart + slot * 0.85;
+                at(cStart, () =>
+                    dispatch({
                         _tag: "SpanStart",
                         traceId,
                         spanId: childId,
                         parentSpanId: stepId,
-                        name: child.name,
-                        attributes: child.attrs ?? {},
+                        name: c.name,
+                        attributes: c.attrs ?? {},
                         timestamp: Date.now(),
-                    });
-                }, childStart);
-                setTimeout(() => {
-                    store.dispatch({
+                    }),
+                );
+                at(cEnd, () =>
+                    dispatch({
                         _tag: "SpanEnd",
                         traceId,
                         spanId: childId,
                         status: "ok",
-                        durationMs: child.durationMs,
+                        durationMs: cEnd - cStart,
                         timestamp: Date.now(),
-                    });
-                }, childEnd);
-                childCursor = childEnd + 10;
-            }
+                    }),
+                );
+            });
         }
 
-        if (step.logs) {
+        // Progress items
+        if (step.items?.length) {
+            const slot = (step.durationMs - 60) / step.items.length;
+            step.items.forEach((item, i) => {
+                at(stepStartAt + 30 + i * slot, () =>
+                    dispatch({
+                        _tag: "SpanEvent",
+                        traceId,
+                        spanId: stepId,
+                        name: item.name,
+                        attributes: item.attrs,
+                        timestamp: Date.now(),
+                    }),
+                );
+            });
+        }
+
+        // Effect.log-style events
+        if (step.logs?.length) {
             for (const log of step.logs) {
-                setTimeout(() => {
-                    store.dispatch({
+                at(stepStartAt + log.at * step.durationMs, () =>
+                    dispatch({
                         _tag: "SpanEvent",
                         traceId,
                         spanId: stepId,
                         name: log.msg,
                         level: log.level,
+                        attributes: { "ui.kind": "log", "effect.logLevel": log.level.toUpperCase() },
                         timestamp: Date.now(),
-                    });
-                }, stepStartAt + log.at);
+                    }),
+                );
             }
         }
 
-        const stepEndAt = cursor + step.durationMs;
-        const stepFailed = spec.fail && step === spec.steps[spec.steps.length - 1];
-        setTimeout(() => {
-            store.dispatch({
+        at(stepEndAt, () =>
+            dispatch({
                 _tag: "SpanEnd",
                 traceId,
                 spanId: stepId,
                 status: stepFailed ? "error" : "ok",
                 durationMs: step.durationMs,
                 timestamp: Date.now(),
-            });
-        }, stepEndAt);
+            }),
+        );
 
         cursor = stepEndAt + 30;
     }
 
     const total = cursor;
-    setTimeout(() => {
-        store.dispatch({
+    const failed = def.steps.some((s) => s.failAtEnd);
+    at(total + 10, () => {
+        dispatch({
             _tag: "SpanEnd",
             traceId,
             spanId: rootId,
-            status: spec.fail ? "error" : "ok",
+            status: failed ? "error" : "ok",
             durationMs: total,
             timestamp: Date.now(),
         });
-        store.dispatch({
+        dispatch({
             _tag: "TraceEnd",
             traceId,
-            status: spec.fail ? "failed" : "completed",
+            status: failed ? "failed" : "completed",
             durationMs: total,
-            error: spec.fail ? "vector-store unreachable" : undefined,
+            ...(failed ? { error: "vector-store unreachable" } : {}),
             timestamp: Date.now(),
-        } as TraceEvent);
-    }, total + 10);
+        });
+    });
 }
+
+// ----------------------------------------------------------------------------
+// Components
+// ----------------------------------------------------------------------------
 
 export function Demo() {
     const traces = useActiveTraces();
-    const [running, setRunning] = useState(false);
-    const ranInitialRef = useRef(false);
+    const [busy, setBusy] = useState(false);
+    const initRef = useRef(false);
 
-    const run = useCallback((spec: WorkflowSpec) => {
-        setRunning(true);
-        runSpec(spec);
-        setTimeout(() => setRunning(false), 600);
+    const run = useCallback((opts: { fail?: boolean } = {}) => {
+        setBusy(true);
+        runWorkflow(makeWorkflow(opts));
+        setTimeout(() => setBusy(false), 350);
     }, []);
 
     useEffect(() => {
-        // Auto-run a single trace on first load so the panel isn't empty.
-        if (ranInitialRef.current) return;
-        ranInitialRef.current = true;
-        run(SUCCESS_WORKFLOW);
+        if (initRef.current) return;
+        initRef.current = true;
+        run();
     }, [run]);
 
     return (
-        <div className="demo-wrap">
-            <aside className="demo-controls">
-                <h3>Try it</h3>
-                <p className="help">
-                    These buttons emit the same <code>TraceEvent</code>s that a real Effect backend produces. The UI below uses the package's React hooks directly - what you see is what your app renders.
-                </p>
-                <div className="btns">
-                    <button className="btn primary" disabled={running} onClick={() => run(SUCCESS_WORKFLOW)}>
-                        Run successful workflow
+        <div className="stage-stream">
+            <div className="stream-controls">
+                <div className="left">
+                    <div className="dot-row">
+                        <span />
+                        <span />
+                        <span />
+                    </div>
+                    <span>traces/user/demo</span>
+                </div>
+                <div className="right">
+                    <button className="ctrl-btn primary" onClick={() => run()} disabled={busy}>
+                        ▶ Run workflow
                     </button>
-                    <button className="btn" disabled={running} onClick={() => run(FAILING_WORKFLOW)}>
-                        Run failing workflow
+                    <button className="ctrl-btn" onClick={() => run({ fail: true })} disabled={busy}>
+                        ⚠ Failing run
+                    </button>
+                    <button
+                        className="ctrl-btn"
+                        onClick={() => {
+                            run();
+                            setTimeout(() => run(), 220);
+                            setTimeout(() => run(), 460);
+                        }}
+                        disabled={busy}
+                    >
+                        ✦ 3× concurrent
                     </button>
                 </div>
-            </aside>
+            </div>
 
-            <div className="demo-stream">
+            <div className="stream-canvas">
                 {traces.length === 0 ? (
-                    <div className="empty">No traces yet. Click a button to emit one.</div>
+                    <div className="stream-empty">no traces · click ▶ to fire one</div>
                 ) : (
-                    traces.map((t) => <TraceCard key={t.traceId} traceId={t.traceId} />)
+                    traces.slice(0, 4).map((t) => <TraceCard key={t.traceId} traceId={t.traceId} />)
                 )}
             </div>
         </div>
@@ -255,35 +353,149 @@ export function Demo() {
 function TraceCard({ traceId }: { traceId: string }) {
     const trace = useTrace(traceId);
     const steps = useTraceSteps(traceId);
+
+    const [, setTick] = useState(0);
+    useEffect(() => {
+        if (!trace || trace.status !== "running") return;
+        const id = setInterval(() => setTick((n) => n + 1), 60);
+        return () => clearInterval(id);
+    }, [trace]);
+
+    // Aggregate log-style events across all steps for the console panel
+    const logs = useMemo(() => {
+        const out: Array<{ id: string; level: LogLevel; msg: string; ts: number; step: string }> = [];
+        for (const s of steps) {
+            for (let i = 0; i < s.events.length; i++) {
+                const e = s.events[i]!;
+                if (e.attributes?.["ui.kind"] === "log" && e.level) {
+                    out.push({
+                        id: `${s.spanId}:${i}`,
+                        level: e.level as LogLevel,
+                        msg: e.name,
+                        ts: e.timestamp,
+                        step: s.name,
+                    });
+                }
+            }
+        }
+        return out.sort((a, b) => a.ts - b.ts);
+    }, [steps]);
+
     if (!trace) return null;
     const elapsed = trace.durationMs ?? Date.now() - trace.startedAt;
+    const maxDur = Math.max(...steps.map((s) => s.durationMs ?? 200), 1);
 
     return (
-        <div className="trace-card">
+        <div className={`trace ${trace.status}`}>
             <div className="trace-head">
-                <div>
-                    <div className="label">{trace.label}</div>
-                    <div className="tid">{trace.traceId}</div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                    <span className={`badge ${trace.status}`}>{trace.status}</span>
-                    <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6, fontFamily: "var(--mono)" }}>
-                        {elapsed.toFixed(0)}ms
+                <div className="l">
+                    <div>
+                        <div className="label">{trace.label}</div>
+                        <div className="tid">{trace.traceId}</div>
                     </div>
                 </div>
+                <div className="r">
+                    <span className="elapsed">{elapsed.toFixed(0)}ms</span>
+                    <span className={`status-chip ${trace.status}`}>{trace.status}</span>
+                </div>
             </div>
-            <ol className="steps">
+            <div className="trace-body">
                 {steps.map((s) => (
-                    <li key={s.spanId} className="step">
-                        <div className="name">
-                            <span className={`dot ${s.status === "running" ? "running" : s.status === "ok" ? "ok" : "error"}`} />
-                            <span>{s.name}</span>
-                            {s.events.length > 0 ? <span className="ev">· {s.events.length} event{s.events.length === 1 ? "" : "s"}</span> : null}
-                        </div>
-                        <div className="dur">{s.durationMs != null ? `${s.durationMs.toFixed(0)}ms` : "…"}</div>
-                    </li>
+                    <Step key={s.spanId} step={s} maxDur={maxDur} />
                 ))}
-            </ol>
+            </div>
+
+            {logs.length > 0 ? <LogConsole logs={logs} done={trace.status !== "running"} /> : null}
         </div>
+    );
+}
+
+function Step({ step, maxDur }: { step: import("live-traces/react").SpanNode; maxDur: number }) {
+    const progressEvents = step.events.filter((e) => e.attributes?.["ui.kind"] === "progress");
+    const totalItems = (progressEvents[0]?.attributes?.["total"] as number | undefined) ?? undefined;
+    const done = progressEvents.length;
+    const itemsLabel = step.attributes["items.label"] as string | undefined;
+
+    const barPct =
+        step.status === "running"
+            ? totalItems
+                ? (done / totalItems) * 100
+                : 30
+            : ((step.durationMs ?? 0) / maxDur) * 100;
+
+    const recentProgress = progressEvents[progressEvents.length - 1];
+
+    return (
+        <div>
+            <div className={`step-row ${step.status}`}>
+                <div className="marker">
+                    <div className="ring" />
+                </div>
+                <div>
+                    <span className="name">{step.name}</span>
+                    {itemsLabel && totalItems ? (
+                        <span className="meta">
+                            <span className="mono">
+                                {done.toString().padStart(String(totalItems).length, "0")}
+                                <span style={{ color: "var(--muted-3)" }}> / </span>
+                                {totalItems}
+                            </span>
+                            <span style={{ color: "var(--muted-3)" }}>·</span>
+                            <span>{itemsLabel}</span>
+                            {step.status === "running" && recentProgress ? (
+                                <span style={{ color: "var(--muted-3)", marginLeft: 6 }}>· {recentProgress.name}</span>
+                            ) : null}
+                        </span>
+                    ) : null}
+                </div>
+                <div className="bar-wrap">
+                    <div className="bar" style={{ width: `${Math.min(barPct, 100)}%` }} />
+                </div>
+                <div className="dur">{step.durationMs != null ? `${step.durationMs.toFixed(0)}ms` : "…"}</div>
+            </div>
+        </div>
+    );
+}
+
+function LogConsole({ logs, done }: { logs: ReadonlyArray<{ id: string; level: LogLevel; msg: string; ts: number; step: string }>; done: boolean }) {
+    const scrollRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (el) el.scrollTop = el.scrollHeight;
+    }, [logs.length]);
+
+    return (
+        <div className="log-console">
+            <div className="log-console-head">
+                <span className="lc-title">Effect.log → SpanEvent stream</span>
+                <span className="lc-meta">
+                    <span className="lc-dot" data-on={!done} />
+                    {done ? "closed" : "live"} · {logs.length} event{logs.length === 1 ? "" : "s"}
+                </span>
+            </div>
+            <div className="log-console-body" ref={scrollRef}>
+                {logs.map((l, i) => (
+                    <div key={l.id} className={`log-line ${l.level.toLowerCase()}`} style={{ opacity: i < Math.max(0, logs.length - 8) ? 0.5 : 1 }}>
+                        <span className="ts">{formatTs(l.ts)}</span>
+                        <span className="lvl">{l.level.slice(0, 4).toLowerCase()}</span>
+                        <span className="src">[{l.step.toLowerCase()}]</span>
+                        <span className="msg">{l.msg}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function formatTs(ms: number): string {
+    const d = new Date(ms);
+    return (
+        d.getHours().toString().padStart(2, "0") +
+        ":" +
+        d.getMinutes().toString().padStart(2, "0") +
+        ":" +
+        d.getSeconds().toString().padStart(2, "0") +
+        "." +
+        d.getMilliseconds().toString().padStart(3, "0")
     );
 }

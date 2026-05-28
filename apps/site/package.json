@@ -12,6 +12,8 @@
     "test": "echo 'no tests'"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "^5.2.0",
+    "@fontsource-variable/jetbrains-mono": "^5.2.0",
     "live-traces": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
