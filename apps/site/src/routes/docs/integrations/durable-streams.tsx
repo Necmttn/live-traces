@@ -8,7 +8,7 @@ export const Route = createFileRoute("/docs/integrations/durable-streams")({
         <>
             <Content />
             <h2>Run the example</h2>
-            <Sandbox path="demo-durable-streams" title="demo-durable-streams" file="src/server.ts" />
+            <Sandbox path="demo-durable-streams" title="demo-durable-streams" />
         </>
     ),
 });

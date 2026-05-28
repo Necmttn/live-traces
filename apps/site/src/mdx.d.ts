@@ -11,3 +11,8 @@ declare module "*.mdx" {
     const Content: ComponentType;
     export default Content;
 }
+
+declare module "*?raw" {
+    const content: string;
+    export default content;
+}

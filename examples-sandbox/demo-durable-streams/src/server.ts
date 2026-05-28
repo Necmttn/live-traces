@@ -1,12 +1,12 @@
 /**
- * Demo server (Durable Streams).
+ * Demo server (Durable Streams) - Node-compatible, for StackBlitz / CodeSandbox.
  *
  * Boots two things in the same process:
  *
  *   1. A `DurableStreamTestServer` on :4437 - the reference durable-streams
- *      server. In production you'd point at https://durablestreams.com or
- *      a self-hosted Caddy deployment instead.
- *   2. A Bun HTTP app on :8789 that runs the Effect workflow. The
+ *      server. In production you'd point at https://durablestreams.com or a
+ *      self-hosted Caddy deployment instead.
+ *   2. A Node HTTP app on :8789 that runs the Effect workflow. The
  *      `DurableStreamsTransportLayer` appends every trace batch to a
  *      per-scope durable stream (`trace/user/<id>` by default).
  *
@@ -14,7 +14,11 @@
  * (proxied through Vite at `/ds`) - no in-process broker involved.
  *
  *   POST /run?scope=<scopeId>&fail=<bool>   → kicks off a workflow
+ *
+ * Run with `npm run server`. Canonical Bun version at
+ * `examples/demo-durable-streams/src/server.ts`.
  */
+import { serve } from "@hono/node-server";
 import { DurableStreamTestServer } from "@durable-streams/server";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -41,45 +45,41 @@ const TraceLive = LiveTraceLayer.pipe(
 const LoggerLive = Logger.replaceScoped(Logger.defaultLogger, Effect.succeed(liveTraceLogger));
 const Runtime = Layer.merge(TraceLive, LoggerLive);
 
-Bun.serve({
-    port: APP_PORT,
-    async fetch(req) {
-        const url = new URL(req.url);
+async function handler(req: Request): Promise<Response> {
+    const url = new URL(req.url);
 
-        if (req.method === "OPTIONS") {
-            return new Response(null, {
-                headers: {
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-                    "Access-Control-Allow-Headers": "Content-Type",
-                },
-            });
-        }
+    if (req.method === "OPTIONS") {
+        return new Response(null, {
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type",
+            },
+        });
+    }
 
-        if (url.pathname === "/run" && req.method === "POST") {
-            const scope = url.searchParams.get("scope") ?? "demo-user";
-            const fail = url.searchParams.get("fail") === "true";
-            const docId = url.searchParams.get("doc") ?? `report-${Date.now() % 10000}.pdf`;
+    if (url.pathname === "/run" && req.method === "POST") {
+        const scope = url.searchParams.get("scope") ?? "demo-user";
+        const fail = url.searchParams.get("fail") === "true";
+        const docId = url.searchParams.get("doc") ?? `report-${Date.now() % 10000}.pdf`;
 
-            void Effect.runPromise(
-                runWorkflow({ docId, scopeId: scope, fail }).pipe(
-                    Effect.provide(Runtime),
-                    Effect.scoped,
-                    Effect.catchAll(() => Effect.void),
-                ),
-            );
+        void Effect.runPromise(
+            runWorkflow({ docId, scopeId: scope, fail }).pipe(
+                Effect.provide(Runtime),
+                Effect.scoped,
+                Effect.catchAll(() => Effect.void),
+            ),
+        );
 
-            return new Response(JSON.stringify({ ok: true, traceScope: scope, docId }), {
-                headers: {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*",
-                },
-            });
-        }
+        return new Response(JSON.stringify({ ok: true, traceScope: scope, docId }), {
+            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        });
+    }
 
-        return new Response("not found", { status: 404 });
-    },
-});
+    return new Response("not found", { status: 404 });
+}
+
+serve({ fetch: handler, port: APP_PORT });
 
 // eslint-disable-next-line no-console
 console.log(`[demo-ds] app server http://localhost:${APP_PORT}`);

@@ -1,30 +1,36 @@
 /**
- * Sandbox card for a runnable livetrace example.
+ * Sandbox: tabbed source viewer + launch buttons for a livetrace example.
  *
- * Click-to-launch instead of an inline iframe - the examples use
- * `livetrace: workspace:*`, so StackBlitz / CodeSandbox need the whole repo
- * cloned + `bun install` at the root to resolve deps. An always-on iframe
- * stalls at "Mounting environment"; the explicit launch buttons let users
- * pick their sandbox (or just read the source on GitHub).
+ * Inline StackBlitz/CodeSandbox iframes don't reliably boot when embedded in
+ * cross-origin docs sites with workspace-derived dependencies. The runnable
+ * sandbox lives one click away - this component shows the actual file
+ * contents inline so the user can read the code without leaving the page.
+ *
+ * Files are loaded at build time via Vite's `?raw` import; new examples need
+ * to be registered in `apps/site/src/docs/sandbox-sources.ts`.
  */
 import { useState } from "react";
 
+import { Code } from "../components/Code.js";
+
+import { SANDBOX_SOURCES, type SandboxFile } from "./sandbox-sources.js";
+
 interface SandboxProps {
-    readonly path: string;
+    readonly path: keyof typeof SANDBOX_SOURCES;
     readonly title?: string;
-    readonly file?: string;
-    readonly description?: string;
-    readonly height?: number;
 }
 
-export function Sandbox({ path, title, file = "src/server.ts", description, height = 560 }: SandboxProps) {
-    const [embedded, setEmbedded] = useState(false);
+export function Sandbox({ path, title }: SandboxProps) {
+    const files: ReadonlyArray<SandboxFile> = SANDBOX_SOURCES[path] ?? [];
+    const [activeFile, setActiveFile] = useState(0);
 
-    const repoPath = `examples/${path}`;
-    const stackblitzBase = `https://stackblitz.com/github/necmttn/livetrace/tree/main/${repoPath}?view=editor&file=${encodeURIComponent(file)}`;
-    const stackblitzEmbed = `${stackblitzBase}&embed=1&theme=dark&hideExplorer=0&ctl=1`;
-    const codesandboxUrl = `https://codesandbox.io/p/github/necmttn/livetrace/main/${repoPath}`;
+    const repoPath = `examples-sandbox/${path}`;
+    const initialFile = files[0]?.path ?? "src/server.ts";
+    const stackblitzUrl = `https://stackblitz.com/github/necmttn/livetrace/tree/main/${repoPath}?view=editor&file=${encodeURIComponent(initialFile)}`;
+    const codesandboxUrl = `https://codesandbox.io/p/github/necmttn/livetrace/main?file=%2F${repoPath}%2F${initialFile}`;
     const githubUrl = `https://github.com/necmttn/livetrace/tree/main/${repoPath}`;
+
+    const current = files[activeFile];
 
     return (
         <div className="sandbox">
@@ -36,40 +42,33 @@ export function Sandbox({ path, title, file = "src/server.ts", description, heig
                 <div className="sandbox-actions">
                     <a href={githubUrl} className="sandbox-link" target="_blank" rel="noreferrer">GitHub</a>
                     <a href={codesandboxUrl} className="sandbox-link" target="_blank" rel="noreferrer">CodeSandbox</a>
-                    <a href={stackblitzBase} className="sandbox-link" target="_blank" rel="noreferrer">StackBlitz ↗</a>
+                    <a href={stackblitzUrl} className="sandbox-link sandbox-link-primary" target="_blank" rel="noreferrer">
+                        Open in StackBlitz ↗
+                    </a>
                 </div>
             </div>
-            {embedded ? (
-                <iframe
-                    src={stackblitzEmbed}
-                    title={title ?? `livetrace ${path} example`}
-                    loading="lazy"
-                    style={{
-                        width: "100%",
-                        height,
-                        border: 0,
-                        background: "var(--bg-1)",
-                        display: "block",
-                    }}
-                    allow="clipboard-read; clipboard-write"
-                    sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts allow-downloads"
-                />
-            ) : (
-                <div className="sandbox-launch">
-                    {description ? <p className="sandbox-desc">{description}</p> : null}
-                    <pre className="sandbox-cmd">
-                        <span className="sandbox-cmd-prompt">$</span> git clone https://github.com/necmttn/livetrace{"\n"}
-                        <span className="sandbox-cmd-prompt">$</span> bun install{"\n"}
-                        <span className="sandbox-cmd-prompt">$</span> bun --filter {path} dev
-                    </pre>
-                    <div className="sandbox-launch-row">
-                        <button type="button" className="sandbox-btn" onClick={() => setEmbedded(true)}>
-                            Embed StackBlitz here
-                        </button>
-                        <a className="sandbox-link sandbox-link-primary" href={stackblitzBase} target="_blank" rel="noreferrer">
-                            Open in StackBlitz ↗
-                        </a>
+
+            {files.length > 0 ? (
+                <>
+                    <div className="sandbox-tabs">
+                        {files.map((f, i) => (
+                            <button
+                                key={f.path}
+                                type="button"
+                                className={`sandbox-tab${i === activeFile ? " is-active" : ""}`}
+                                onClick={() => setActiveFile(i)}
+                            >
+                                {f.path}
+                            </button>
+                        ))}
                     </div>
+                    <div className="sandbox-source">
+                        {current ? <Code lang={current.lang} code={current.source} /> : null}
+                    </div>
+                </>
+            ) : (
+                <div className="sandbox-empty">
+                    No source registered for <code>{path}</code>. Open in StackBlitz to view the full example.
                 </div>
             )}
         </div>
