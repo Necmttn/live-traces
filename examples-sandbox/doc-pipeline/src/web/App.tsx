@@ -1,79 +1,58 @@
 import { useEffect, useState } from "react";
 
-import { useActiveTraces } from "livetrace/react";
+import { getTraceStore } from "livetrace/react";
+import type { TraceEvent } from "livetrace/types";
 
-import { TraceCard } from "./TraceCard.js";
-import { connect, triggerRun } from "./sse.js";
+import { TraceDashboard } from "./TraceDashboard.js";
 
-const SCOPE = "demo-user";
+const SCOPE = "demo";
+
+const SAMPLE_DOCS = ["report-q3.pdf", "research-notes.md", "contract-v2.pdf"] as const;
 
 export function App() {
-    const traces = useActiveTraces();
-    const [running, setRunning] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [last, setLast] = useState<string | null>(null);
 
-    useEffect(() => connect("user", SCOPE), []);
+    useEffect(() => {
+        const es = new EventSource(`/traces/user/${SCOPE}`);
+        es.onmessage = (msg) => {
+            try {
+                const batch = JSON.parse(msg.data) as TraceEvent[];
+                getTraceStore().dispatchBatch(batch);
+            } catch {
+                /* skip malformed payloads */
+            }
+        };
+        return () => es.close();
+    }, []);
 
-    async function run(fail = false) {
-        setRunning(true);
-        try {
-            await triggerRun({ scope: SCOPE, fail });
-        } finally {
-            // give the trace a moment to flush before re-enabling
-            setTimeout(() => setRunning(false), 800);
-        }
+    async function run(doc: string) {
+        setBusy(true);
+        setLast(doc);
+        const params = new URLSearchParams({ scope: SCOPE, doc });
+        await fetch(`/run?${params}`, { method: "POST" });
+        setTimeout(() => setBusy(false), 600);
     }
 
     return (
-        <div style={{ maxWidth: 880, margin: "0 auto", padding: "48px 24px" }}>
-            <header style={{ marginBottom: 32 }}>
-                <h1 style={{ margin: 0, fontSize: 32, letterSpacing: -0.5 }}>livetrace · demo</h1>
-                <p style={{ color: "var(--muted)", marginTop: 8, fontSize: 15 }}>
-                    Bun + Effect server streaming spans over SSE → React store → this UI. Click a button to start a workflow and watch it execute.
-                </p>
-            </header>
-
-            <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-                <button onClick={() => run(false)} disabled={running} style={btn()}>
-                    Run successful workflow
-                </button>
-                <button onClick={() => run(true)} disabled={running} style={btn("err")}>
-                    Run failing workflow
-                </button>
+        <div className="page">
+            <div className="page-head">
+                <h1>Doc pipeline · livetrace example</h1>
+                <a className="gh" href="https://github.com/necmttn/livetrace/tree/main/examples-sandbox/doc-pipeline" target="_blank" rel="noreferrer">
+                    source ↗
+                </a>
             </div>
 
-            {traces.length === 0 ? (
-                <div style={empty()}>No traces yet. Trigger a workflow above.</div>
-            ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    {traces.map((t) => (
-                        <TraceCard key={t.traceId} traceId={t.traceId} />
-                    ))}
-                </div>
-            )}
+            <div className="run-row">
+                {SAMPLE_DOCS.map((d) => (
+                    <button key={d} type="button" className="run-btn" disabled={busy} onClick={() => run(d)}>
+                        ▶ process {d}
+                    </button>
+                ))}
+                {last ? <span className="run-status">last: {last}</span> : null}
+            </div>
+
+            <TraceDashboard kind="pipeline" prompt={last ?? SAMPLE_DOCS[0]} />
         </div>
     );
-}
-
-function btn(kind: "default" | "err" = "default"): React.CSSProperties {
-    return {
-        appearance: "none",
-        border: "1px solid var(--border)",
-        background: kind === "err" ? "rgba(239,68,68,0.12)" : "var(--panel)",
-        color: "var(--text)",
-        padding: "10px 16px",
-        borderRadius: 8,
-        fontSize: 14,
-        fontWeight: 500,
-        cursor: "pointer",
-    };
-}
-
-function empty(): React.CSSProperties {
-    return {
-        padding: 48,
-        border: "1px dashed var(--border)",
-        borderRadius: 12,
-        textAlign: "center",
-        color: "var(--muted)",
-    };
 }
