@@ -1435,14 +1435,15 @@ pre {
     left: 0;
     right: 0;
     top: 26px;
-    height: 1lh;
+    transform: translateY(calc((var(--line-start, 1) - 1) * 1lh));
+    height: calc((var(--line-end, 1) - var(--line-start, 1) + 1) * 1lh);
     background: linear-gradient(90deg, rgba(0, 212, 255, 0.2), rgba(0, 212, 255, 0.06) 55%, transparent);
     border-left: 2px solid var(--accent);
     pointer-events: none;
-    transition: transform 0.18s ease, opacity 0.2s ease;
+    transition: transform 0.18s ease, height 0.18s ease, opacity 0.2s ease;
     z-index: 0;
     box-shadow: inset 0 0 24px rgba(0, 212, 255, 0.08);
-    will-change: transform;
+    will-change: transform, height;
 }
 
 .cursor-line {

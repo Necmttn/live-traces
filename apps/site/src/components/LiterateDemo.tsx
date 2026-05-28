@@ -111,7 +111,10 @@ type StepCounts = Record<StepName, number>;
 const ZERO_COUNTS: StepCounts = { Parse: 0, Chunk: 0, Embed: 0, Index: 0 };
 
 interface State {
+    /** First line of highlight band (inclusive). 0 = nothing highlighted. */
     line: number;
+    /** Last line of highlight band (inclusive). Equal to `line` for single-line highlights. */
+    lineEnd: number;
     workflow: Workflow;
     completed: ReadonlyArray<StepName>;
     chunks: ReadonlyArray<ChunkTile>;
@@ -120,7 +123,7 @@ interface State {
 }
 
 type Action =
-    | { type: "highlight"; line: number }
+    | { type: "highlight"; line: number; end?: number }
     | { type: "stepStart"; name: StepName | "done" }
     | { type: "tick"; name: StepName; done: number }
     | { type: "stepDone"; name: StepName }
@@ -130,7 +133,7 @@ type Action =
 function reducer(s: State, a: Action): State {
     switch (a.type) {
         case "highlight":
-            return { ...s, line: a.line };
+            return { ...s, line: a.line, lineEnd: a.end ?? a.line };
         case "stepStart":
             return { ...s, workflow: a.name, chunks: a.name === "Embed" ? [] : s.chunks };
         case "tick":
@@ -148,7 +151,7 @@ function reducer(s: State, a: Action): State {
                 progress: { ...s.progress, Embed: a.idx },
             };
         case "reset":
-            return { line: 0, workflow: "idle", completed: [], chunks: [], progress: ZERO_COUNTS, runId: a.runId };
+            return { line: 0, lineEnd: 0, workflow: "idle", completed: [], chunks: [], progress: ZERO_COUNTS, runId: a.runId };
     }
 }
 
@@ -171,57 +174,48 @@ function buildSchedule(chunks: ReadonlyArray<string>, runId: number): ReadonlyAr
     push(0, { type: "reset", runId });
     push(140, { type: "highlight", line: 6 });
 
-    // For every step the per-iter highlight stays inside the
-    // `Effect.withSpan({...})` block - alternating line 14↔15 (parse) etc.
-    // The two highlighted lines are always adjacent so the bar sweeps
-    // smoothly within the wrapper instead of jumping over structural
-    // lines (`.pipe(` / `forEach(` / closers).
+    // For every step the loop-body block stays lit as a single range
+    // covering `work().pipe(Effect.withSpan({ ... }))`. The right-side
+    // counter ticks each iteration; the left side shows "this whole
+    // block is the unit that's executing repeatedly".
 
-    // Parse - lines 11→13→(loop 14↔15)
+    // Parse - step opener, then loop body block lines 13-17
     push(540, { type: "highlight", line: 11 });
-    push(120, { type: "highlight", line: 13 });
+    push(120, { type: "highlight", line: 13, end: 17 });
     push(60, { type: "stepStart", name: "Parse" });
     const parseTotal = STEP_META.Parse.total;
     for (let p = 1; p <= parseTotal; p++) {
-        push(80, { type: "highlight", line: 14 });
-        push(50, { type: "highlight", line: 15 });
-        push(20, { type: "tick", name: "Parse", done: p });
+        push(150, { type: "tick", name: "Parse", done: p });
     }
     push(160, { type: "stepDone", name: "Parse" });
 
-    // Chunk - lines 21→23→(loop 24↔25)
+    // Chunk - block lines 23-27
     push(180, { type: "highlight", line: 21 });
-    push(100, { type: "highlight", line: 23 });
+    push(120, { type: "highlight", line: 23, end: 27 });
     push(60, { type: "stepStart", name: "Chunk" });
     const chunkTotal = STEP_META.Chunk.total;
     for (let c = 1; c <= chunkTotal; c++) {
-        push(28, { type: "highlight", line: 24 });
-        push(16, { type: "highlight", line: 25 });
-        push(6, { type: "tick", name: "Chunk", done: c });
+        push(45, { type: "tick", name: "Chunk", done: c });
     }
     push(160, { type: "stepDone", name: "Chunk" });
 
-    // Embed - lines 31→33→(loop 34↔35) + chunk preview
+    // Embed - block lines 33-37 + chunk preview
     push(180, { type: "highlight", line: 31 });
-    push(120, { type: "highlight", line: 33 });
+    push(120, { type: "highlight", line: 33, end: 37 });
     push(60, { type: "stepStart", name: "Embed" });
     chunks.forEach((c, i) => {
-        push(170, { type: "highlight", line: 34 });
-        push(80, { type: "highlight", line: 35 });
-        push(30, { type: "chunk", idx: i + 1, text: c });
-        push(20, { type: "tick", name: "Embed", done: i + 1 });
+        push(260, { type: "chunk", idx: i + 1, text: c });
+        push(0, { type: "tick", name: "Embed", done: i + 1 });
     });
     push(220, { type: "stepDone", name: "Embed" });
 
-    // Index - lines 42→44→(loop 45↔46)
+    // Index - block lines 44-48
     push(180, { type: "highlight", line: 42 });
-    push(100, { type: "highlight", line: 44 });
+    push(120, { type: "highlight", line: 44, end: 48 });
     push(60, { type: "stepStart", name: "Index" });
     const indexTotal = STEP_META.Index.total;
     for (let u = 1; u <= indexTotal; u++) {
-        push(28, { type: "highlight", line: 45 });
-        push(16, { type: "highlight", line: 46 });
-        push(6, { type: "tick", name: "Index", done: u });
+        push(45, { type: "tick", name: "Index", done: u });
     }
     push(180, { type: "stepDone", name: "Index" });
 
@@ -233,6 +227,7 @@ function buildSchedule(chunks: ReadonlyArray<string>, runId: number): ReadonlyAr
 
 const INITIAL: State = {
     line: 0,
+    lineEnd: 0,
     workflow: "idle",
     completed: [],
     chunks: [],
@@ -347,17 +342,23 @@ export function LiterateDemo() {
             <div className="literate-code">
                 <div className="code-bar">
                     <span className="path">src/process.ts</span>
-                    <span className="cursor-line">▸ line {state.line || "-"}</span>
+                    <span className="cursor-line">
+                        ▸ {state.line === 0 ? "line -" : state.lineEnd > state.line ? `lines ${state.line}–${state.lineEnd}` : `line ${state.line}`}
+                    </span>
                 </div>
                 <div
                     className="code-body literate-source"
-                    style={{ ["--active-line" as never]: state.line } as React.CSSProperties}
+                    style={
+                        {
+                            ["--line-start" as never]: state.line || 1,
+                            ["--line-end" as never]: state.lineEnd || state.line || 1,
+                        } as React.CSSProperties
+                    }
                     data-active-line={state.line}
                 >
                     <div
                         className="line-glow"
                         style={{
-                            transform: `translateY(calc((var(--active-line) - 1) * 1lh))`,
                             opacity: state.line ? 1 : 0,
                         }}
                     />
