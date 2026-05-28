@@ -116,6 +116,20 @@ interface Metrics {
     readonly itemsProcessed: number;
 }
 
+// Recursively sum a numeric attribute across a step + descendants. Tokens
+// and cost are set on child llm.* / tool.* spans, not on the step itself.
+function attrSum(node: SpanNode, key: string): number {
+    const v = node.attributes[key];
+    let sum = typeof v === "number" ? v : 0;
+    for (const c of node.children) sum += attrSum(c, key);
+    return sum;
+}
+
+function hasToolDescendant(node: SpanNode): boolean {
+    if (node.attributes["tool.name"]) return true;
+    return node.children.some(hasToolDescendant);
+}
+
 function computeMetrics(steps: ReadonlyArray<SpanNode>, startedAt: number): Metrics {
     let tokensIn = 0;
     let tokensOut = 0;
@@ -125,15 +139,13 @@ function computeMetrics(steps: ReadonlyArray<SpanNode>, startedAt: number): Metr
     let ttftMs: number | null = null;
     let eventCount = 0;
     let toolCalls = 0;
-    let itemsProcessed = 0;
+    const itemIndices = new Set<number>();
 
     for (const s of steps) {
-        const ti = s.attributes["tokens.in"];
-        const to = s.attributes["tokens.out"];
-        const c = s.attributes["cost.usd"];
-        if (typeof ti === "number") tokensIn += ti;
-        if (typeof to === "number") tokensOut += to;
-        if (typeof c === "number") costUsd += c;
+        tokensIn += attrSum(s, "tokens.in");
+        tokensOut += attrSum(s, "tokens.out");
+        costUsd += attrSum(s, "cost.usd");
+
         if (s.durationMs != null) {
             durations.push(s.durationMs);
             totalMs += s.durationMs;
@@ -141,15 +153,19 @@ function computeMetrics(steps: ReadonlyArray<SpanNode>, startedAt: number): Metr
             totalMs += Date.now() - s.startedAt;
         }
         eventCount += s.events.length;
-        if (s.attributes["tool.name"]) toolCalls += 1;
+        if (s.attributes["tool.name"] || hasToolDescendant(s)) toolCalls += 1;
         for (const e of s.events) {
-            if (e.attributes?.["ui.kind"] === "progress") itemsProcessed += 1;
+            if (e.attributes?.["ui.kind"] === "progress") {
+                const idx = e.attributes["index"] as number | undefined;
+                if (idx != null) itemIndices.add(idx);
+            }
         }
         if (s.name === "Generate" && ttftMs == null) {
             const firstToken = s.events.find((e) => e.attributes?.["ui.kind"] === "answer.token");
             if (firstToken) ttftMs = firstToken.timestamp - startedAt;
         }
     }
+    const itemsProcessed = itemIndices.size;
 
     const sorted = [...durations].sort((a, b) => a - b);
     const p95 = sorted.length === 0 ? 0 : sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1)]!;
@@ -195,16 +211,21 @@ function Metric({ label, value, kind }: { label: string; value: string; kind?: "
 // Step rows
 
 function StepRow({ step }: { step: SpanNode }) {
-    const model = step.attributes["llm.model"] as string | undefined;
-    const tokIn = step.attributes["tokens.in"] as number | undefined;
-    const tokOut = step.attributes["tokens.out"] as number | undefined;
-    const cost = step.attributes["cost.usd"] as number | undefined;
-    const toolName = step.attributes["tool.name"] as string | undefined;
+    // Find the inner llm.* / tool.* child span that carries the metadata.
+    const meta = findMetaChild(step);
+    const model = (meta?.["llm.model"] ?? step.attributes["llm.model"]) as string | undefined;
+    const tokIn = (meta?.["tokens.in"] ?? step.attributes["tokens.in"]) as number | undefined;
+    const tokOut = (meta?.["tokens.out"] ?? step.attributes["tokens.out"]) as number | undefined;
+    const cost = (meta?.["cost.usd"] ?? step.attributes["cost.usd"]) as number | undefined;
+    const toolName = (meta?.["tool.name"] ?? step.attributes["tool.name"]) as string | undefined;
     const itemsLabel = step.attributes["items.label"] as string | undefined;
 
-    const chunks = useMemo(() => step.events.filter((e) => e.attributes?.["ui.kind"] === "chunk"), [step.events]);
+    const chunks = useMemo(
+        () => dedupByIndex(step.events.filter((e) => e.attributes?.["ui.kind"] === "chunk")),
+        [step.events],
+    );
     const progressEvents = useMemo(
-        () => step.events.filter((e) => e.attributes?.["ui.kind"] === "progress"),
+        () => dedupByIndex(step.events.filter((e) => e.attributes?.["ui.kind"] === "progress")),
         [step.events],
     );
     const toolArgs = step.events.find((e) => e.attributes?.["ui.kind"] === "tool.args");
@@ -288,6 +309,37 @@ function StepRow({ step }: { step: SpanNode }) {
     );
 }
 
+// Walk descendants looking for the first child span that carries any of the
+// metadata chips. Usually the llm.chat / tool.X child of a step.
+function findMetaChild(node: SpanNode): Record<string, unknown> | null {
+    const keys = ["llm.model", "tokens.in", "tool.name", "cost.usd"] as const;
+    for (const c of node.children) {
+        if (keys.some((k) => c.attributes[k] != null)) return c.attributes;
+        const deeper = findMetaChild(c);
+        if (deeper) return deeper;
+    }
+    return null;
+}
+
+// Drop duplicate events by their `index` attribute. The Effect logger emits
+// each `logInfo` twice (once raw, once with `effect.fiberId`); this collapses
+// that to one entry per logical event.
+function dedupByIndex<T extends { attributes?: Record<string, unknown> | undefined }>(events: ReadonlyArray<T>): T[] {
+    const seen = new Set<number>();
+    const out: T[] = [];
+    for (const e of events) {
+        const idx = e.attributes?.["index"];
+        if (typeof idx !== "number") {
+            out.push(e);
+            continue;
+        }
+        if (seen.has(idx)) continue;
+        seen.add(idx);
+        out.push(e);
+    }
+    return out;
+}
+
 function stringify(v: unknown): string {
     if (typeof v === "string") {
         try {
@@ -309,8 +361,7 @@ function stringify(v: unknown): string {
 function collectAnswer(steps: ReadonlyArray<SpanNode>): string {
     const gen = steps.find((s) => s.name === "Generate");
     if (!gen) return "";
-    return gen.events
-        .filter((e) => e.attributes?.["ui.kind"] === "answer.token")
+    return dedupByIndex(gen.events.filter((e) => e.attributes?.["ui.kind"] === "answer.token"))
         .map((e) => e.name)
         .join("");
 }
@@ -361,19 +412,23 @@ interface LogLine {
 function collectLogs(steps: ReadonlyArray<SpanNode>): LogLine[] {
     const out: LogLine[] = [];
     for (const s of steps) {
+        const seen = new Set<string>();
         for (let i = 0; i < s.events.length; i++) {
             const e = s.events[i]!;
             const k = e.attributes?.["ui.kind"];
             // Logs are SpanEvents with a level + no specialized ui.kind
-            if (e.level && (k === undefined || k === "log")) {
-                out.push({
-                    id: `${s.spanId}:${i}`,
-                    level: e.level as LogLevel,
-                    msg: e.name,
-                    ts: e.timestamp,
-                    step: s.name,
-                });
-            }
+            if (!e.level || (k !== undefined && k !== "log")) continue;
+            // Logger fires twice - collapse on (timestamp, name).
+            const key = `${e.timestamp}:${e.name}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            out.push({
+                id: `${s.spanId}:${i}`,
+                level: e.level as LogLevel,
+                msg: e.name,
+                ts: e.timestamp,
+                step: s.name,
+            });
         }
     }
     return out.sort((a, b) => a.ts - b.ts);
