@@ -11,6 +11,7 @@ import type { TraceEvent } from "live-traces/types";
 import { getTraceStore, useActiveTraces, useTrace, useTraceSteps } from "live-traces/react";
 
 import { CORPUS, preview } from "./corpus.js";
+import { Typewriter } from "./Typewriter.js";
 
 // ----------------------------------------------------------------------------
 // Workflow spec - describes timing + what gets emitted
@@ -468,7 +469,9 @@ function Step({ step, maxDur }: { step: import("live-traces/react").SpanNode; ma
             {step.status === "running" && chunkText ? (
                 <div className="step-preview">
                     <span className="preview-prefix">now</span>
-                    <span className="preview-text">"{chunkText}"</span>
+                    <span className="preview-text">
+                        "<Typewriter text={chunkText} cps={70} />"
+                    </span>
                 </div>
             ) : null}
         </div>
@@ -497,7 +500,9 @@ function LogConsole({ logs, done }: { logs: ReadonlyArray<{ id: string; level: L
                         <span className="ts">{formatTs(l.ts)}</span>
                         <span className="lvl">{l.level.slice(0, 4).toLowerCase()}</span>
                         <span className="src">[{l.step.toLowerCase()}]</span>
-                        <span className="msg">{l.msg}</span>
+                        <span className="msg">
+                            <Typewriter text={l.msg} cps={95} />
+                        </span>
                     </div>
                 ))}
             </div>

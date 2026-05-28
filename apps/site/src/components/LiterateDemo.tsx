@@ -11,6 +11,7 @@ import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 
 import { Code } from "./Code.js";
 import { CORPUS, preview } from "./corpus.js";
+import { Typewriter } from "./Typewriter.js";
 
 const SOURCE = `import { Effect } from "effect";
 import { withTrace, step } from "live-traces";
@@ -27,14 +28,16 @@ export const processDocument = (docId: string, chunks: string[]) =>
 
         yield* step("Chunk")(
             Effect.gen(function* () {
-                yield* Effect.logInfo("splitting · target=512 · overlap=64");
+                yield* Effect.logInfo("splitting · 512 · 64");
             }),
         );
 
         yield* step("Embed")(
             Effect.gen(function* () {
                 for (const [i, chunk] of chunks.entries()) {
-                    yield* Effect.logInfo(\`embed \${i + 1}/\${chunks.length} · "\${chunk}…"\`);
+                    yield* Effect.logInfo(
+                        \`embed \${i + 1}/\${chunks.length} "\${chunk}…"\`,
+                    );
                 }
             }),
         );
@@ -140,21 +143,23 @@ function buildSchedule(chunks: ReadonlyArray<string>, runId: number): ReadonlyAr
     push(140, { type: "highlight", line: 22 });
 
     chunks.forEach((c, i) => {
-        push(120, { type: "highlight", line: 23 });
+        push(80, { type: "highlight", line: 23 });
+        push(60, { type: "highlight", line: 24 });
         push(40, { type: "chunk", idx: i + 1, text: c });
         push(20, { type: "log", level: "Info", msg: `embed ${i + 1}/${chunks.length}` });
     });
 
     push(220, { type: "stepDone", name: "Embed" });
 
-    push(140, { type: "highlight", line: 28 });
+    push(140, { type: "highlight", line: 30 });
     push(60, { type: "stepStart", name: "Index" });
-    push(160, { type: "highlight", line: 30 });
+    push(160, { type: "highlight", line: 32 });
     push(80, { type: "log", level: "Info", msg: "committed txn 0xa8f4" });
     push(420, { type: "stepDone", name: "Index" });
 
-    push(180, { type: "highlight", line: 33 });
+    push(180, { type: "highlight", line: 36 });
     push(80, { type: "log", level: "Info", msg: "workflow complete" });
+    push(40, { type: "stepStart", name: "done" });
 
     return ticks;
 }
@@ -209,9 +214,21 @@ export function LiterateDemo() {
                     <span className="path">src/process.ts</span>
                     <span className="cursor-line">▸ line {state.line || "-"}</span>
                 </div>
-                <div className="code-body literate-source" data-active-line={state.line}>
-                    <div className="line-glow" style={{ top: `${(state.line - 1) * 18}px`, opacity: state.line ? 1 : 0 }} />
-                    <Code lang="tsx" code={SOURCE} />
+                <div
+                    className="code-body literate-source"
+                    style={{ ["--active-line" as never]: state.line } as React.CSSProperties}
+                    data-active-line={state.line}
+                >
+                    <div
+                        className="line-glow"
+                        style={{
+                            transform: `translateY(calc((var(--active-line) - 1) * 1lh))`,
+                            opacity: state.line ? 1 : 0,
+                        }}
+                    />
+                    <div className="literate-source-inner">
+                        <Code lang="tsx" code={SOURCE} />
+                    </div>
                 </div>
             </div>
 
@@ -248,7 +265,9 @@ export function LiterateDemo() {
                             state.chunks.map((c) => (
                                 <div key={c.id} className="lc-tile">
                                     <span className="lc-idx">chunk {c.idx.toString().padStart(2, "0")}</span>
-                                    <span className="lc-text">"{c.text}"</span>
+                                    <span className="lc-text">
+                                        "<Typewriter text={c.text} cps={58} />"
+                                    </span>
                                 </div>
                             ))
                         )}
@@ -269,7 +288,9 @@ export function LiterateDemo() {
                             state.logs.map((l) => (
                                 <div key={l.id} className={`log-line ${l.level.toLowerCase()}`}>
                                     <span className="lvl">{l.level.slice(0, 4).toLowerCase()}</span>
-                                    <span className="msg">{l.msg}</span>
+                                    <span className="msg">
+                                        <Typewriter text={l.msg} cps={90} />
+                                    </span>
                                 </div>
                             ))
                         )}
