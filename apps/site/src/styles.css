@@ -1674,6 +1674,38 @@ pre {
     color: var(--fg-strong);
     font-weight: 500;
     letter-spacing: -0.1px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.uv-step-span {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--muted);
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 1px 6px;
+    letter-spacing: 0.2px;
+    font-weight: 400;
+}
+
+.uv-step.current .uv-step-span {
+    color: var(--accent);
+    border-color: var(--accent-line);
+    background: var(--accent-soft);
+}
+
+.uv-foot {
+    padding: 10px 18px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--muted-2);
+    border-top: 1px solid var(--line);
+    background: var(--bg-1);
+    text-transform: lowercase;
+    letter-spacing: 0.3px;
 }
 
 .uv-step.pending .uv-step-name {
@@ -2325,4 +2357,333 @@ footer .right {
     padding: 6px 10px;
     overflow-x: auto;
     white-space: nowrap;
+}
+
+/* ============================================================
+   Mobile - one cohesive override block for <=640px viewports
+   ============================================================ */
+
+@media (max-width: 640px) {
+    /* Tighten the page chrome */
+    .container {
+        padding: 0 16px;
+    }
+
+    .nav-inner {
+        height: 48px;
+    }
+
+    .nav-meta {
+        gap: 14px;
+        font-size: 12px;
+    }
+
+    .brand {
+        font-size: 12px;
+    }
+
+    .brand span {
+        font-size: 10px;
+    }
+
+    /* Hero */
+    .stage {
+        padding: 36px 0 24px;
+    }
+
+    .stage-title {
+        font-size: clamp(28px, 8vw, 36px);
+        max-width: 100%;
+    }
+
+    .stage-sub {
+        font-size: 14.5px;
+        margin-bottom: 24px;
+    }
+
+    .stage-eyebrow {
+        font-size: 10.5px;
+        flex-wrap: wrap;
+    }
+
+    /* Stream controls - stack into rows of buttons */
+    .stream-controls {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px 12px;
+    }
+
+    .stream-controls .left {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    .stream-controls .right {
+        flex: 1 1 100%;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .stream-controls .right .ctrl-btn {
+        flex: 1 1 auto;
+        text-align: center;
+    }
+
+    /* Trace card - drop the 200px progress column entirely;
+       chunk-reader & log feed still inform the user */
+    .stream-canvas {
+        height: 600px;
+        padding: 12px;
+        gap: 10px;
+    }
+
+    .trace-head {
+        padding: 12px 14px;
+    }
+
+    .trace-head .label {
+        font-size: 13px;
+    }
+
+    .trace-head .tid {
+        display: none;
+    }
+
+    .trace-body {
+        padding: 6px 14px 12px;
+    }
+
+    .step-row {
+        grid-template-columns: 16px 1fr auto;
+        gap: 10px;
+        padding: 7px 0;
+    }
+
+    .step-row .bar-wrap {
+        display: none;
+    }
+
+    .step-row .name {
+        font-size: 13px;
+    }
+
+    .step-row .meta {
+        margin-left: 4px;
+        font-size: 10.5px;
+    }
+
+    .step-row .dur {
+        font-size: 11px;
+    }
+
+    /* Chunk-reader (hero) */
+    .chunk-reader {
+        margin: 6px 0 10px 14px;
+        padding: 8px 10px;
+        gap: 10px;
+    }
+
+    .chunk-reader-label {
+        min-width: 30px;
+    }
+
+    .chunk-reader-stack {
+        max-height: 140px;
+    }
+
+    .chunk-line {
+        grid-template-columns: 44px 1fr;
+        gap: 8px;
+        font-size: 11.5px;
+    }
+
+    /* Log console */
+    .log-console {
+        margin: 4px 14px 12px;
+    }
+
+    .log-console-body {
+        max-height: 130px;
+    }
+
+    .log-line {
+        grid-template-columns: 64px 32px 1fr;
+    }
+
+    .log-line .src {
+        display: none;
+    }
+
+    /* Annotations */
+    .note .body h4 {
+        font-size: 13px;
+    }
+
+    /* Activity panel - full width below the canvas */
+    .activity-panel {
+        position: static;
+    }
+
+    /* Literate demo */
+    .literate-source {
+        font-size: 11.5px;
+    }
+
+    .literate-source pre,
+    .literate-source .token-line {
+        font-size: 11.5px;
+    }
+
+    .lit-control-bar {
+        flex-wrap: wrap;
+        padding: 10px 12px;
+        gap: 10px;
+    }
+
+    .lit-controls {
+        flex-wrap: wrap;
+    }
+
+    .lit-speed {
+        margin-left: 0;
+    }
+
+    .lit-ctrl {
+        width: 28px;
+        height: 24px;
+        font-size: 13px;
+    }
+
+    .uv-header {
+        padding: 12px 14px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .uv-file {
+        gap: 10px;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .uv-file-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 10px;
+    }
+
+    .uv-file-meta strong {
+        font-size: 13px;
+    }
+
+    .uv-file-sub {
+        font-size: 11px;
+    }
+
+    .uv-steps {
+        padding: 12px 14px;
+        gap: 12px;
+    }
+
+    .uv-step-head {
+        grid-template-columns: 22px 1fr auto;
+        font-size: 12.5px;
+    }
+
+    .uv-step-count {
+        font-size: 11px;
+    }
+
+    .uv-preview-head,
+    .uv-preview-list {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .uv-chunk {
+        grid-template-columns: 40px 1fr;
+        gap: 10px;
+        padding: 8px 10px;
+        font-size: 11.5px;
+    }
+
+    /* How it fits together - labels stack above code */
+    .how-step {
+        padding: 20px 0;
+        gap: 16px;
+    }
+
+    .how-step .label-col h3 {
+        font-size: 17px;
+    }
+
+    .how-head {
+        gap: 16px;
+    }
+
+    .how-head h2 {
+        font-size: 22px;
+    }
+
+    .code-bar {
+        padding: 6px 12px;
+        font-size: 10.5px;
+    }
+
+    .code-body {
+        padding: 12px 14px;
+    }
+
+    /* Transport tabs/cards */
+    .transport-tab {
+        padding: 10px 10px;
+        font-size: 11px;
+    }
+
+    .transports-section {
+        padding: 48px 0 8px;
+    }
+
+    .transport-card {
+        padding: 16px;
+    }
+
+    .transport-card header h3 {
+        font-size: 13.5px;
+    }
+
+    .transport-traits {
+        grid-template-columns: auto 1fr;
+        gap: 4px 12px;
+    }
+
+    /* CTA */
+    .cta {
+        padding: 56px 0 40px;
+    }
+
+    .cta h2 {
+        font-size: 26px;
+    }
+
+    .cta .btn-row {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    /* Footer */
+    footer {
+        padding: 40px 0 56px;
+    }
+
+    footer .footer-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    /* Sparkline activity panel header */
+    .activity-spark svg {
+        height: 16px;
+    }
 }

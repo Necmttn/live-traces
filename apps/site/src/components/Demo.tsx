@@ -311,6 +311,14 @@ export function Demo() {
         run();
     }, [run]);
 
+    // Idle auto-loop: when canvas goes empty (completed traces evicted by TTL),
+    // fire another workflow after a short pause so the stage never sits blank.
+    useEffect(() => {
+        if (busy || traces.length > 0) return;
+        const id = window.setTimeout(() => run(), 2200);
+        return () => window.clearTimeout(id);
+    }, [busy, traces.length, run]);
+
     return (
         <div className="stage-stream">
             <div className="stream-controls">

@@ -23,43 +23,55 @@ import { withTrace, step } from "livetrace";
 
 export const processDocument = (docId: string, pdf: Pdf) =>
     Effect.gen(function* () {
-        yield* Effect.logInfo(\`opening \${docId}\`);
+        yield* Effect.annotateCurrentSpan({
+            "doc.id": docId,
+            "doc.pages": pdf.pages.length,
+        });
 
         yield* step("Parse")(
             Effect.forEach(pdf.pages, (page) =>
-                Effect.gen(function* () {
-                    yield* parsePage(page);
-                    yield* Effect.logInfo(\`page \${page.n}/\${pdf.pages.length}\`);
-                }),
+                parsePage(page).pipe(
+                    Effect.withSpan("parse.page", {
+                        attributes: { "parse.n": page.n, "parse.total": pdf.pages.length },
+                    }),
+                ),
             ),
         );
 
-        yield* step("Chunk")(
+        const pieces = yield* step("Chunk")(
+            Effect.forEach(pdf.text, (slice, i) =>
+                splitOne(slice).pipe(
+                    Effect.withSpan("chunk.split", {
+                        attributes: { "chunk.i": i + 1, "chunk.total": pdf.text.length },
+                    }),
+                ),
+            ),
+        );
+
+        const vectors = yield* step("Embed")(
             Effect.forEach(pieces, (c, i) =>
-                Effect.logInfo(\`chunk \${i + 1}/\${pieces.length}\`),
-            ),
-        );
-
-        yield* step("Embed")(
-            Effect.forEach(chunks, (c, i) =>
-                Effect.gen(function* () {
-                    yield* embedOne(c);
-                    yield* Effect.logInfo(\`embed \${i + 1}/\${chunks.length}\`);
-                }),
+                embedOne(c).pipe(
+                    Effect.withSpan("embed.one", {
+                        attributes: {
+                            "embed.i": i + 1,
+                            "embed.total": pieces.length,
+                            "embed.model": "text-embedding-3-small",
+                        },
+                    }),
+                ),
                 { concurrency: 4 },
             ),
         );
 
         yield* step("Index")(
             Effect.forEach(vectors, (v, i) =>
-                Effect.gen(function* () {
-                    yield* upsert(v);
-                    yield* Effect.logInfo(\`upsert \${i + 1}/\${vectors.length}\`);
-                }),
+                upsert(v).pipe(
+                    Effect.withSpan("index.upsert", {
+                        attributes: { "upsert.i": i + 1, "upsert.total": vectors.length },
+                    }),
+                ),
             ),
         );
-
-        yield* Effect.logInfo("workflow complete");
     }).pipe(
         withTrace({
             traceId: \`doc:\${docId}\`,
@@ -76,14 +88,18 @@ const STEPS_ORDER: ReadonlyArray<StepName> = ["Parse", "Chunk", "Embed", "Index"
 interface StepMeta {
     readonly total: number;
     readonly label: string;
+    /** OTEL span name used per iteration in the source. */
+    readonly span: string;
+    /** Span attribute that carries the progress counter. */
+    readonly counter: string;
 }
 
 const CHUNK_COUNT = 6; // chunks emitted in the demo embed step
 const STEP_META: Record<StepName, StepMeta> = {
-    Parse: { total: 12, label: "pages" },
-    Chunk: { total: 32, label: "chunks" },
-    Embed: { total: CHUNK_COUNT, label: "embeddings" },
-    Index: { total: 32, label: "upserts" },
+    Parse: { total: 12, label: "pages", span: "parse.page", counter: "parse.n" },
+    Chunk: { total: 32, label: "chunks", span: "chunk.split", counter: "chunk.i" },
+    Embed: { total: CHUNK_COUNT, label: "embeddings", span: "embed.one", counter: "embed.i" },
+    Index: { total: 32, label: "upserts", span: "index.upsert", counter: "upsert.i" },
 };
 
 interface ChunkTile {
@@ -159,50 +175,51 @@ function buildSchedule(chunks: ReadonlyArray<string>, runId: number): ReadonlyAr
     push(0, { type: "reset", runId });
     push(140, { type: "highlight", line: 6 });
 
-    // Parse - one tick per page
-    push(620, { type: "highlight", line: 8 });
+    // Parse - one tick per page; highlight withSpan call + attributes line
+    push(620, { type: "highlight", line: 11 });
     push(60, { type: "stepStart", name: "Parse" });
     const parseTotal = STEP_META.Parse.total;
     for (let p = 1; p <= parseTotal; p++) {
-        push(70, { type: "highlight", line: 11 });
-        push(40, { type: "highlight", line: 12 });
+        push(70, { type: "highlight", line: 13 });
+        push(40, { type: "highlight", line: 15 });
         push(20, { type: "tick", name: "Parse", done: p });
     }
     push(160, { type: "stepDone", name: "Parse" });
 
     // Chunk - one tick per piece
-    push(180, { type: "highlight", line: 17 });
+    push(180, { type: "highlight", line: 21 });
     push(60, { type: "stepStart", name: "Chunk" });
     const chunkTotal = STEP_META.Chunk.total;
     for (let c = 1; c <= chunkTotal; c++) {
-        push(30, { type: "highlight", line: 19 });
-        push(15, { type: "tick", name: "Chunk", done: c });
+        push(30, { type: "highlight", line: 23 });
+        push(15, { type: "highlight", line: 25 });
+        push(5, { type: "tick", name: "Chunk", done: c });
     }
     push(160, { type: "stepDone", name: "Chunk" });
 
     // Embed - tick + chunk preview per iteration
-    push(180, { type: "highlight", line: 23 });
+    push(180, { type: "highlight", line: 31 });
     push(60, { type: "stepStart", name: "Embed" });
     chunks.forEach((c, i) => {
-        push(140, { type: "highlight", line: 26 });
-        push(70, { type: "highlight", line: 27 });
+        push(140, { type: "highlight", line: 33 });
+        push(70, { type: "highlight", line: 36 });
         push(30, { type: "chunk", idx: i + 1, text: c });
         push(20, { type: "tick", name: "Embed", done: i + 1 });
     });
     push(220, { type: "stepDone", name: "Embed" });
 
     // Index - one tick per upsert
-    push(160, { type: "highlight", line: 33 });
+    push(160, { type: "highlight", line: 46 });
     push(60, { type: "stepStart", name: "Index" });
     const indexTotal = STEP_META.Index.total;
     for (let u = 1; u <= indexTotal; u++) {
-        push(30, { type: "highlight", line: 36 });
-        push(15, { type: "highlight", line: 37 });
-        push(10, { type: "tick", name: "Index", done: u });
+        push(30, { type: "highlight", line: 48 });
+        push(15, { type: "highlight", line: 50 });
+        push(5, { type: "tick", name: "Index", done: u });
     }
     push(180, { type: "stepDone", name: "Index" });
 
-    push(180, { type: "highlight", line: 42 });
+    push(180, { type: "highlight", line: 55 });
     push(40, { type: "stepStart", name: "done" });
 
     return ticks;
@@ -412,7 +429,10 @@ export function LiterateDemo() {
                             <li key={name} className={`uv-step ${cls}`}>
                                 <div className="uv-step-head">
                                     <span className="uv-step-mark">{mark(i, isCurrent, isDone)}</span>
-                                    <span className="uv-step-name">{name}</span>
+                                    <span className="uv-step-name">
+                                        {name}
+                                        <code className="uv-step-span">{meta.span}</code>
+                                    </span>
                                     <span className="uv-step-count">{`${count} / ${meta.total} · ${meta.label}`}</span>
                                 </div>
                                 <div className="uv-bar">
@@ -447,6 +467,9 @@ export function LiterateDemo() {
                         )}
                     </div>
                 </div>
+                <footer className="uv-foot">
+                    counts derived from span attributes - no log parsing
+                </footer>
             </div>
         </div>
     );
