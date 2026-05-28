@@ -206,8 +206,6 @@ function TraceCard({ traceId }) {
                         <span>Apache-2.0</span>
                         <span>·</span>
                         <span>built by @necmttn</span>
-                        <span>·</span>
-                        <span>extracted from quera</span>
                     </div>
                     <div className="right">
                         <a href="https://github.com/necmttn/livetrace">GitHub</a>
