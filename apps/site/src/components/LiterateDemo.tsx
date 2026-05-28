@@ -52,11 +52,7 @@ export const processDocument = (docId: string, pdf: Pdf) =>
             Effect.forEach(pieces, (c, i) =>
                 embedOne(c).pipe(
                     Effect.withSpan("embed.one", {
-                        attributes: {
-                            "embed.i": i + 1,
-                            "embed.total": pieces.length,
-                            "embed.model": "text-embedding-3-small",
-                        },
+                        attributes: { "embed.i": i + 1, "embed.total": pieces.length },
                     }),
                 ),
                 { concurrency: 4 },
@@ -175,51 +171,61 @@ function buildSchedule(chunks: ReadonlyArray<string>, runId: number): ReadonlyAr
     push(0, { type: "reset", runId });
     push(140, { type: "highlight", line: 6 });
 
-    // Parse - one tick per page; highlight withSpan call + attributes line
-    push(620, { type: "highlight", line: 11 });
+    // For every step the per-iter highlight stays inside the
+    // `Effect.withSpan({...})` block - alternating line 14↔15 (parse) etc.
+    // The two highlighted lines are always adjacent so the bar sweeps
+    // smoothly within the wrapper instead of jumping over structural
+    // lines (`.pipe(` / `forEach(` / closers).
+
+    // Parse - lines 11→13→(loop 14↔15)
+    push(540, { type: "highlight", line: 11 });
+    push(120, { type: "highlight", line: 13 });
     push(60, { type: "stepStart", name: "Parse" });
     const parseTotal = STEP_META.Parse.total;
     for (let p = 1; p <= parseTotal; p++) {
-        push(70, { type: "highlight", line: 13 });
-        push(40, { type: "highlight", line: 15 });
+        push(80, { type: "highlight", line: 14 });
+        push(50, { type: "highlight", line: 15 });
         push(20, { type: "tick", name: "Parse", done: p });
     }
     push(160, { type: "stepDone", name: "Parse" });
 
-    // Chunk - one tick per piece
+    // Chunk - lines 21→23→(loop 24↔25)
     push(180, { type: "highlight", line: 21 });
+    push(100, { type: "highlight", line: 23 });
     push(60, { type: "stepStart", name: "Chunk" });
     const chunkTotal = STEP_META.Chunk.total;
     for (let c = 1; c <= chunkTotal; c++) {
-        push(30, { type: "highlight", line: 23 });
-        push(15, { type: "highlight", line: 25 });
-        push(5, { type: "tick", name: "Chunk", done: c });
+        push(28, { type: "highlight", line: 24 });
+        push(16, { type: "highlight", line: 25 });
+        push(6, { type: "tick", name: "Chunk", done: c });
     }
     push(160, { type: "stepDone", name: "Chunk" });
 
-    // Embed - tick + chunk preview per iteration
+    // Embed - lines 31→33→(loop 34↔35) + chunk preview
     push(180, { type: "highlight", line: 31 });
+    push(120, { type: "highlight", line: 33 });
     push(60, { type: "stepStart", name: "Embed" });
     chunks.forEach((c, i) => {
-        push(140, { type: "highlight", line: 33 });
-        push(70, { type: "highlight", line: 36 });
+        push(170, { type: "highlight", line: 34 });
+        push(80, { type: "highlight", line: 35 });
         push(30, { type: "chunk", idx: i + 1, text: c });
         push(20, { type: "tick", name: "Embed", done: i + 1 });
     });
     push(220, { type: "stepDone", name: "Embed" });
 
-    // Index - one tick per upsert
-    push(160, { type: "highlight", line: 46 });
+    // Index - lines 42→44→(loop 45↔46)
+    push(180, { type: "highlight", line: 42 });
+    push(100, { type: "highlight", line: 44 });
     push(60, { type: "stepStart", name: "Index" });
     const indexTotal = STEP_META.Index.total;
     for (let u = 1; u <= indexTotal; u++) {
-        push(30, { type: "highlight", line: 48 });
-        push(15, { type: "highlight", line: 50 });
-        push(5, { type: "tick", name: "Index", done: u });
+        push(28, { type: "highlight", line: 45 });
+        push(16, { type: "highlight", line: 46 });
+        push(6, { type: "tick", name: "Index", done: u });
     }
     push(180, { type: "stepDone", name: "Index" });
 
-    push(180, { type: "highlight", line: 55 });
+    push(200, { type: "highlight", line: 51 });
     push(40, { type: "stepStart", name: "done" });
 
     return ticks;

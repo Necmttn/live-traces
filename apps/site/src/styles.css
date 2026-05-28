@@ -415,6 +415,11 @@ pre {
     border-radius: var(--radius);
     overflow: hidden;
     transition: border-color 0.15s ease;
+    /* Stretch to fill the canvas and pin the log-console at the bottom */
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .trace.running {
@@ -497,6 +502,9 @@ pre {
 
 .trace-body {
     padding: 8px 18px 16px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .step-row {
@@ -776,6 +784,19 @@ pre {
     border-radius: var(--radius);
     overflow: hidden;
     font-family: var(--mono);
+    /* Pinned to the bottom of the trace card with a stable height so the
+       trace card never reflows as logs arrive - events scroll inside */
+    flex: 0 0 220px;
+    display: flex;
+    flex-direction: column;
+}
+
+.log-console-empty {
+    padding: 18px 14px;
+    color: var(--muted-3);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    text-align: center;
 }
 
 .log-console-head {
@@ -818,7 +839,8 @@ pre {
 
 .log-console-body {
     padding: 8px 12px;
-    max-height: 160px;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;

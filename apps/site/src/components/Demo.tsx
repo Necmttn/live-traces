@@ -490,16 +490,20 @@ function LogConsole({ logs, done }: { logs: ReadonlyArray<{ id: string; level: L
                 </span>
             </div>
             <div className="log-console-body" ref={scrollRef}>
-                {logs.map((l, i) => (
-                    <div key={l.id} className={`log-line ${l.level.toLowerCase()}`} style={{ opacity: i < Math.max(0, logs.length - 8) ? 0.5 : 1 }}>
-                        <span className="ts">{formatTs(l.ts)}</span>
-                        <span className="lvl">{l.level.slice(0, 4).toLowerCase()}</span>
-                        <span className="src">[{l.step.toLowerCase()}]</span>
-                        <span className="msg">
-                            <Typewriter text={l.msg} cps={95} />
-                        </span>
-                    </div>
-                ))}
+                {logs.length === 0 ? (
+                    <div className="log-console-empty">awaiting Effect.log events…</div>
+                ) : (
+                    logs.map((l, i) => (
+                        <div key={l.id} className={`log-line ${l.level.toLowerCase()}`} style={{ opacity: i < Math.max(0, logs.length - 8) ? 0.5 : 1 }}>
+                            <span className="ts">{formatTs(l.ts)}</span>
+                            <span className="lvl">{l.level.slice(0, 4).toLowerCase()}</span>
+                            <span className="src">[{l.step.toLowerCase()}]</span>
+                            <span className="msg">
+                                <Typewriter text={l.msg} cps={95} />
+                            </span>
+                        </div>
+                    ))
+                )}
             </div>
         </div>
     );
