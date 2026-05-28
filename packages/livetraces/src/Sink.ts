@@ -23,7 +23,7 @@ export interface TraceTransport {
     readonly send: (events: ReadonlyArray<TraceEvent>) => Effect.Effect<void>;
 }
 
-export class TraceTransportTag extends Context.Tag("@live-traces/TraceTransport")<TraceTransportTag, TraceTransport>() {}
+export class TraceTransportTag extends Context.Tag("@livetraces/TraceTransport")<TraceTransportTag, TraceTransport>() {}
 
 // ============================================================================
 // TraceSinkHandle — the synchronous interface used by WrappedSpan
@@ -38,7 +38,7 @@ export interface TraceSinkHandle {
 // TraceSink — Effect service managing buffer + flush lifecycle
 // ============================================================================
 
-export class TraceSink extends Context.Tag("@live-traces/TraceSink")<TraceSink, TraceSinkHandle>() {}
+export class TraceSink extends Context.Tag("@livetraces/TraceSink")<TraceSink, TraceSinkHandle>() {}
 
 // ============================================================================
 // Layer — creates a TraceSink backed by a TraceTransport
@@ -68,7 +68,7 @@ export const TraceSinkLive = (config?: TraceSinkConfig): Layer.Layer<TraceSink, 
             // Daemon fiber: flush every intervalMs
             yield* flush.pipe(
                 Effect.schedule(Schedule.spaced(intervalMs)),
-                Effect.catchAllCause((cause) => Effect.logDebug("live-traces flush daemon error").pipe(Effect.annotateLogs("cause", String(cause)))),
+                Effect.catchAllCause((cause) => Effect.logDebug("livetraces flush daemon error").pipe(Effect.annotateLogs("cause", String(cause)))),
                 Effect.forkScoped,
             );
 
@@ -76,7 +76,7 @@ export const TraceSinkLive = (config?: TraceSinkConfig): Layer.Layer<TraceSink, 
             yield* Effect.addFinalizer(() =>
                 flush.pipe(
                     Effect.catchAllCause((cause) =>
-                        Effect.logDebug("live-traces finalizer flush error").pipe(Effect.annotateLogs("cause", String(cause))),
+                        Effect.logDebug("livetraces finalizer flush error").pipe(Effect.annotateLogs("cause", String(cause))),
                     ),
                 ),
             );

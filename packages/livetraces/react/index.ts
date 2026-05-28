@@ -1,12 +1,12 @@
 /**
- * live-traces/react
+ * livetraces/react
  *
  * React store and hooks for consuming trace events.
  * Zero Effect dependency — works with any React 18+ app.
  *
  * Usage:
  * ```tsx
- * import { useActiveTraces, useTrace, useTraceSteps } from "live-traces/react"
+ * import { useActiveTraces, useTrace, useTraceSteps } from "livetraces/react"
  *
  * function ActivityPanel() {
  *   const traces = useActiveTraces()

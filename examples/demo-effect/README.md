@@ -1,6 +1,6 @@
 # demo-effect
 
-Runnable end-to-end example. Bun HTTP server runs a fake document-processing Effect workflow that's wrapped in `withTrace`. Spans stream over SSE to a Vite-served React frontend that uses `live-traces/react` to render them.
+Runnable end-to-end example. Bun HTTP server runs a fake document-processing Effect workflow that's wrapped in `withTrace`. Spans stream over SSE to a Vite-served React frontend that uses `livetraces/react` to render them.
 
 ```bash
 bun install     # at the repo root

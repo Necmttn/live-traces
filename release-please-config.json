@@ -6,8 +6,8 @@
   "include-component-in-tag": true,
   "separate-pull-requests": false,
   "packages": {
-    "packages/live-traces": {
-      "package-name": "live-traces",
+    "packages/livetraces": {
+      "package-name": "livetraces",
       "changelog-path": "CHANGELOG.md"
     }
   },

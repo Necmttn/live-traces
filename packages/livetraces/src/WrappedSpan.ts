@@ -17,7 +17,7 @@ import type { TraceScope } from "./types.js";
 
 import { TRACE_INTERNAL } from "./types.js";
 
-export const LiveTraceSymbol: unique symbol = Symbol.for("@live-traces/WrappedSpan");
+export const LiveTraceSymbol: unique symbol = Symbol.for("@livetraces/WrappedSpan");
 
 export class WrappedSpan implements Span {
     readonly _tag = "Span" as const;

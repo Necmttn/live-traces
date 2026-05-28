@@ -6,10 +6,10 @@
  * Both kinds flow through the package's real TraceStore + hooks.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { SpanNode } from "live-traces/react";
+import type { SpanNode } from "livetraces/react";
 
-import type { TraceEvent } from "live-traces/types";
-import { getTraceStore, useActiveTraces, useTrace, useTraceSteps } from "live-traces/react";
+import type { TraceEvent } from "livetraces/types";
+import { getTraceStore, useActiveTraces, useTrace, useTraceSteps } from "livetraces/react";
 
 import { CORPUS, preview } from "./corpus.js";
 import { Typewriter } from "./Typewriter.js";
@@ -437,7 +437,7 @@ function Step({ step, maxDur }: { step: SpanNode; maxDur: number }) {
             : ((step.durationMs ?? 0) / maxDur) * 100;
 
     const recentProgress = progressEvents[progressEvents.length - 1];
-    const chunkFeed = useReadableChunks(step);
+    const chunkFeed = useChunkFeed(step);
 
     return (
         <div>
@@ -468,19 +468,7 @@ function Step({ step, maxDur }: { step: SpanNode; maxDur: number }) {
                 <div className="dur">{step.durationMs != null ? `${step.durationMs.toFixed(0)}ms` : "…"}</div>
             </div>
             {step.status === "running" && chunkFeed.length > 0 ? (
-                <div className="chunk-reader">
-                    <div className="chunk-reader-label">
-                        <span className="lr-prefix">reading</span>
-                        <span className="lr-dot" />
-                    </div>
-                    <div className="chunk-reader-stack">
-                        {chunkFeed.map((c, i) => (
-                            <div key={c.id} className={`chunk-block depth-${i}`} style={{ opacity: 1 - i * 0.32 }}>
-                                {i === 0 ? <Typewriter text={c.text} cps={42} /> : c.text}
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                <ChunkTeleprompter feed={chunkFeed} />
             ) : null}
         </div>
     );
@@ -530,14 +518,21 @@ function LogConsole({ logs, done }: { logs: ReadonlyArray<{ id: string; level: L
  */
 interface ChunkRead {
     id: number;
+    idx: number;
+    total: number;
     text: string;
 }
 
-function useReadableChunks(step: SpanNode, cadenceMs = 700): ReadonlyArray<ChunkRead> {
+/**
+ * Teleprompter feed of all chunks emitted for the current step. Newest at
+ * the end, oldest sliding off the top. No throttling - every progress
+ * event with chunk text appears as a fresh line so a 32-chunk embed step
+ * lands all 32 lines at the actual emit pace.
+ */
+function useChunkFeed(step: SpanNode, maxKeep = 32): ReadonlyArray<ChunkRead> {
     const [chunks, setChunks] = useState<ReadonlyArray<ChunkRead>>([]);
     const stepIdRef = useRef<string | null>(null);
     const lastIndexRef = useRef<number>(-1);
-    const lastSampleAtRef = useRef<number>(0);
     const idCounterRef = useRef<number>(0);
 
     useEffect(() => {
@@ -545,18 +540,13 @@ function useReadableChunks(step: SpanNode, cadenceMs = 700): ReadonlyArray<Chunk
             setChunks([]);
             stepIdRef.current = null;
             lastIndexRef.current = -1;
-            lastSampleAtRef.current = 0;
             return;
         }
         if (stepIdRef.current !== step.spanId) {
             stepIdRef.current = step.spanId;
             lastIndexRef.current = -1;
-            lastSampleAtRef.current = 0;
             setChunks([]);
         }
-
-        const now = Date.now();
-        if (now - lastSampleAtRef.current < cadenceMs) return;
 
         const progressEvents = step.events.filter((e) => e.attributes?.["ui.kind"] === "progress");
         if (progressEvents.length === 0) return;
@@ -566,15 +556,55 @@ function useReadableChunks(step: SpanNode, cadenceMs = 700): ReadonlyArray<Chunk
         if (idx === lastIndexRef.current) return;
         const text = latest.attributes?.["chunk.text"] as string | undefined;
         if (!text) return;
+        const total = (latest.attributes?.["total"] as number | undefined) ?? progressEvents.length;
 
         lastIndexRef.current = idx;
-        lastSampleAtRef.current = now;
         idCounterRef.current += 1;
         const nextId = idCounterRef.current;
-        setChunks((prev) => [{ id: nextId, text }, ...prev].slice(0, 3));
-    }, [step.spanId, step.status, step.events.length, cadenceMs]);
+        setChunks((prev) => [...prev, { id: nextId, idx, total, text }].slice(-maxKeep));
+    }, [step.spanId, step.status, step.events.length, maxKeep]);
 
     return chunks;
+}
+
+function ChunkTeleprompter({ feed }: { feed: ReadonlyArray<ChunkRead> }) {
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (el) el.scrollTop = el.scrollHeight;
+    }, [feed.length]);
+
+    const latest = feed[feed.length - 1];
+
+    return (
+        <div className="chunk-reader">
+            <div className="chunk-reader-label">
+                <span className="lr-prefix">reading</span>
+                <span className="lr-dot" />
+                {latest ? (
+                    <span className="lr-counter mono">
+                        {latest.idx.toString().padStart(2, "0")}
+                        <span className="lr-counter-of">/{latest.total}</span>
+                    </span>
+                ) : null}
+            </div>
+            <div className="chunk-reader-stack" ref={scrollRef}>
+                {feed.map((c, i) => {
+                    const isLatest = i === feed.length - 1;
+                    return (
+                        <div key={c.id} className={`chunk-line ${isLatest ? "fresh" : ""}`}>
+                            <span className="chunk-line-idx">
+                                {c.idx.toString().padStart(2, "0")}
+                                <span className="chunk-line-of">/{c.total}</span>
+                            </span>
+                            <span className="chunk-line-text">{c.text}</span>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
 }
 
 function formatTs(ms: number): string {

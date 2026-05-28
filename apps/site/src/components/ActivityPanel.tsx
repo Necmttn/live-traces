@@ -3,7 +3,7 @@
  * production multi-tenant trace board you'd build with this library - each
  * row is a real `TraceState`.
  */
-import { useActiveTraces } from "live-traces/react";
+import { useActiveTraces } from "livetraces/react";
 
 import { Sparkline, useSparklineSamples } from "./Sparkline.js";
 

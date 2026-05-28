@@ -11,7 +11,7 @@
  * import {
  *   LiveTraceLayer, TraceSinkLive,
  *   SSETransportLayer, getSseBroker,
- * } from "live-traces";
+ * } from "livetraces";
  *
  * // Server layer
  * const TraceLive = LiveTraceLayer.pipe(

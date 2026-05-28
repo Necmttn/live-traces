@@ -23,10 +23,10 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Typecheck
-        run: bun --filter live-traces typecheck
+        run: bun --filter livetraces typecheck
 
       - name: Test
-        run: bun --filter live-traces test
+        run: bun --filter livetraces test
 
       - name: Build
-        run: bun --filter live-traces build
+        run: bun --filter livetraces build

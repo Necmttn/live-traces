@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - "apps/site/**"
-      - "packages/live-traces/**"
+      - "packages/livetraces/**"
       - ".github/workflows/site.yml"
   workflow_dispatch:
 
@@ -26,7 +26,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build package
-        run: bun --filter live-traces build
+        run: bun --filter livetraces build
 
       - name: Build site
         run: bun --filter site build

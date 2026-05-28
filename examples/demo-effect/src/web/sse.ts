@@ -1,5 +1,5 @@
-import type { TraceEvent } from "live-traces/types";
-import { getTraceStore } from "live-traces/react";
+import type { TraceEvent } from "livetraces/types";
+import { getTraceStore } from "livetraces/react";
 
 let es: EventSource | null = null;
 

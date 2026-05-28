@@ -10,8 +10,8 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Logger from "effect/Logger";
 
-import { LiveTraceLayer, TraceSinkLive, liveTraceLogger } from "live-traces";
-import { SSETransportLayer, getSseBroker } from "live-traces/transports/sse";
+import { LiveTraceLayer, TraceSinkLive, liveTraceLogger } from "livetraces";
+import { SSETransportLayer, getSseBroker } from "livetraces/transports/sse";
 
 import { runWorkflow } from "./workflow.js";
 

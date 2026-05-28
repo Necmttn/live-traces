@@ -14,6 +14,6 @@ Initial public release. Extracted from internal Quera codebase.
 - `ConsoleTransportLayer` - debugging transport.
 - `SSETransportLayer` + in-process `SseBroker` - server-sent events transport with per-scope routing.
 - `liveTraceLogger` - bridges `Effect.log` calls inside traced scopes to `SpanEvent`.
-- `live-traces/react` - `TraceStore`, `useActiveTraces`, `useTrace`, `useTraceSteps`, `useSpanTree`.
-- `live-traces/types` - dependency-free wire-format types for non-TS/non-Effect backends.
+- `livetraces/react` - `TraceStore`, `useActiveTraces`, `useTrace`, `useTraceSteps`, `useSpanTree`.
+- `livetraces/types` - dependency-free wire-format types for non-TS/non-Effect backends.
 - Effect `Schema` definitions for runtime validation.

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { useActiveTraces } from "live-traces/react";
+import { useActiveTraces } from "livetraces/react";
 
 import { ActivityPanel } from "./components/ActivityPanel.js";
 import { Code } from "./components/Code.js";
@@ -19,13 +19,13 @@ export function App() {
                             <span className="brand-dot" />
                             <span className="brand-dot" />
                         </div>
-                        live-traces
+                        livetraces
                         <span style={{ color: "var(--muted-2)", fontSize: 12 }}>v0.1.0</span>
                     </div>
                     <div className="nav-meta">
-                        <a className="nav-link" href="https://github.com/necmttn/live-traces">github</a>
-                        <a className="nav-link" href="https://www.npmjs.com/package/live-traces">npm</a>
-                        <a className="nav-link" href="https://github.com/necmttn/live-traces/blob/main/packages/live-traces/README.md">readme</a>
+                        <a className="nav-link" href="https://github.com/necmttn/livetraces">github</a>
+                        <a className="nav-link" href="https://www.npmjs.com/package/livetraces">npm</a>
+                        <a className="nav-link" href="https://github.com/necmttn/livetraces/blob/main/packages/livetraces/README.md">readme</a>
                     </div>
                 </div>
             </nav>
@@ -92,7 +92,7 @@ export function App() {
             <section className="container how">
                 <div className="how-head">
                     <h2>How it fits together</h2>
-                    <div className="install"><b>$ bun add</b> live-traces effect</div>
+                    <div className="install"><b>$ bun add</b> livetraces effect</div>
                 </div>
 
                 <div className="how-step">
@@ -109,8 +109,8 @@ import {
     LiveTraceLayer,
     TraceSinkLive,
     liveTraceLogger,
-} from "live-traces";
-import { SSETransportLayer } from "live-traces/transports/sse";
+} from "livetraces";
+import { SSETransportLayer } from "livetraces/transports/sse";
 
 // Replace the default logger so Effect.log → SpanEvent.
 const LoggerLive = Logger.replaceScoped(
@@ -137,7 +137,7 @@ export const TraceLive = LiveTraceLayer.pipe(
                         <div className="code-bar"><span className="path">src/process.ts</span><span>typescript</span></div>
                         <div className="code-body">
                             <Code lang="tsx" code={`import { Effect } from "effect";
-import { withTrace, step } from "live-traces";
+import { withTrace, step } from "livetraces";
 
 export const processDocument = (docId: string) =>
     Effect.gen(function* () {
@@ -172,7 +172,7 @@ export const processDocument = (docId: string) =>
     getTraceStore,
     useActiveTraces,
     useTraceSteps,
-} from "live-traces/react";
+} from "livetraces/react";
 
 const es = new EventSource(\`/traces/user/\${userId}\`);
 es.onmessage = (msg) =>
@@ -212,11 +212,11 @@ function TraceCard({ traceId }) {
                     backend is doing - without the OpenTelemetry collector, without polling.
                 </p>
                 <div className="btn-row">
-                    <a className="btn primary" href="https://www.npmjs.com/package/live-traces">Install</a>
-                    <a className="btn secondary" href="https://github.com/necmttn/live-traces#readme">Read the docs</a>
+                    <a className="btn primary" href="https://www.npmjs.com/package/livetraces">Install</a>
+                    <a className="btn secondary" href="https://github.com/necmttn/livetraces#readme">Read the docs</a>
                 </div>
                 <div>
-                    <span className="install-tag"><b>$</b> bun add live-traces effect</span>
+                    <span className="install-tag"><b>$</b> bun add livetraces effect</span>
                 </div>
             </section>
 
@@ -230,8 +230,8 @@ function TraceCard({ traceId }) {
                         <span>extracted from quera</span>
                     </div>
                     <div className="right">
-                        <a href="https://github.com/necmttn/live-traces">GitHub</a>
-                        <a href="https://www.npmjs.com/package/live-traces">npm</a>
+                        <a href="https://github.com/necmttn/livetraces">GitHub</a>
+                        <a href="https://www.npmjs.com/package/livetraces">npm</a>
                         <a href="https://necmttn.com">@necmttn</a>
                     </div>
                 </div>

@@ -1,5 +1,5 @@
 {
-  "name": "live-traces",
+  "name": "livetraces",
   "version": "0.1.0",
   "description": "Real-time Effect span streaming to frontend UIs. Stream traces from any backend to React with zero overhead.",
   "keywords": [
@@ -17,14 +17,14 @@
   ],
   "license": "Apache-2.0",
   "author": "Necmettin Karakaya <necmettin.karakaya@gmail.com>",
-  "homepage": "https://live-traces.necmttn.com",
+  "homepage": "https://livetraces.necmttn.com",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/necmttn/live-traces.git",
-    "directory": "packages/live-traces"
+    "url": "git+https://github.com/necmttn/livetraces.git",
+    "directory": "packages/livetraces"
   },
   "bugs": {
-    "url": "https://github.com/necmttn/live-traces/issues"
+    "url": "https://github.com/necmttn/livetraces/issues"
   },
   "type": "module",
   "sideEffects": false,
