@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 
-import { useActiveTraces } from "livetraces/react";
+import { useActiveTraces } from "livetrace/react";
 
 import { ActivityPanel } from "./components/ActivityPanel.js";
 import { Code } from "./components/Code.js";
 import { Constellation } from "./components/Constellation.js";
 import { Demo } from "./components/Demo.js";
 import { LiterateDemo } from "./components/LiterateDemo.js";
+import { TransportCards, TransportTabs } from "./components/Transports.js";
 
 export function App() {
     return (
@@ -19,13 +20,13 @@ export function App() {
                             <span className="brand-dot" />
                             <span className="brand-dot" />
                         </div>
-                        livetraces
+                        livetrace
                         <span style={{ color: "var(--muted-2)", fontSize: 12 }}>v0.1.0</span>
                     </div>
                     <div className="nav-meta">
-                        <a className="nav-link" href="https://github.com/necmttn/livetraces">github</a>
-                        <a className="nav-link" href="https://www.npmjs.com/package/livetraces">npm</a>
-                        <a className="nav-link" href="https://github.com/necmttn/livetraces/blob/main/packages/livetraces/README.md">readme</a>
+                        <a className="nav-link" href="https://github.com/necmttn/livetrace">github</a>
+                        <a className="nav-link" href="https://www.npmjs.com/package/livetrace">npm</a>
+                        <a className="nav-link" href="https://github.com/necmttn/livetrace/blob/main/packages/livetrace/README.md">readme</a>
                     </div>
                 </div>
             </nav>
@@ -56,8 +57,8 @@ export function App() {
                         <div className="note">
                             <div className="n">2</div>
                             <div className="body">
-                                <h4>Spans batch + ship over SSE</h4>
-                                <p><code>SSETransportLayer</code> fans events to subscribers per scope. Swap in WebSocket or a durable queue with ~30 lines.</p>
+                                <h4>Spans batch + ship over a transport</h4>
+                                <p>Pick one Layer: <code>SSETransportLayer</code>, <code>WSTransportLayer</code>, or <code>DurableTransportLayer</code>. Same <code>TraceTransport</code> interface - swap without touching workflow code.</p>
                             </div>
                         </div>
                         <div className="note">
@@ -92,7 +93,7 @@ export function App() {
             <section className="container how">
                 <div className="how-head">
                     <h2>How it fits together</h2>
-                    <div className="install"><b>$ bun add</b> livetraces effect</div>
+                    <div className="install"><b>$ bun add</b> livetrace effect</div>
                 </div>
 
                 <div className="how-step">
@@ -101,30 +102,7 @@ export function App() {
                         <h3>Compose the trace layer</h3>
                         <p><code>LiveTraceLayer</code> wraps your current tracer (native or OpenTelemetry) and pushes events into a buffered sink. The sink flushes batches to a pluggable transport.</p>
                     </div>
-                    <div className="code-col">
-                        <div className="code-bar"><span className="path">src/runtime.ts</span><span>typescript</span></div>
-                        <div className="code-body">
-                            <Code lang="tsx" code={`import { Effect, Layer, Logger } from "effect";
-import {
-    LiveTraceLayer,
-    TraceSinkLive,
-    liveTraceLogger,
-} from "livetraces";
-import { SSETransportLayer } from "livetraces/transports/sse";
-
-// Replace the default logger so Effect.log → SpanEvent.
-const LoggerLive = Logger.replaceScoped(
-    Logger.defaultLogger,
-    Effect.succeed(liveTraceLogger),
-);
-
-export const TraceLive = LiveTraceLayer.pipe(
-    Layer.provide(TraceSinkLive({ flushIntervalMs: 100 })),
-    Layer.provide(SSETransportLayer),
-    Layer.provideMerge(LoggerLive),
-);`} />
-                        </div>
-                    </div>
+                    <TransportTabs />
                 </div>
 
                 <div className="how-step">
@@ -137,7 +115,7 @@ export const TraceLive = LiveTraceLayer.pipe(
                         <div className="code-bar"><span className="path">src/process.ts</span><span>typescript</span></div>
                         <div className="code-body">
                             <Code lang="tsx" code={`import { Effect } from "effect";
-import { withTrace, step } from "livetraces";
+import { withTrace, step } from "livetrace";
 
 export const processDocument = (docId: string) =>
     Effect.gen(function* () {
@@ -172,7 +150,7 @@ export const processDocument = (docId: string) =>
     getTraceStore,
     useActiveTraces,
     useTraceSteps,
-} from "livetraces/react";
+} from "livetrace/react";
 
 const es = new EventSource(\`/traces/user/\${userId}\`);
 es.onmessage = (msg) =>
@@ -202,6 +180,8 @@ function TraceCard({ traceId }) {
                 </div>
             </section>
 
+            <TransportCards />
+
             <section className="container cta">
                 <span className="cta-eyebrow">
                     <span className="d" /> ready to stream
@@ -212,11 +192,11 @@ function TraceCard({ traceId }) {
                     backend is doing - without the OpenTelemetry collector, without polling.
                 </p>
                 <div className="btn-row">
-                    <a className="btn primary" href="https://www.npmjs.com/package/livetraces">Install</a>
-                    <a className="btn secondary" href="https://github.com/necmttn/livetraces#readme">Read the docs</a>
+                    <a className="btn primary" href="https://www.npmjs.com/package/livetrace">Install</a>
+                    <a className="btn secondary" href="https://github.com/necmttn/livetrace#readme">Read the docs</a>
                 </div>
                 <div>
-                    <span className="install-tag"><b>$</b> bun add livetraces effect</span>
+                    <span className="install-tag"><b>$</b> bun add livetrace effect</span>
                 </div>
             </section>
 
@@ -230,8 +210,8 @@ function TraceCard({ traceId }) {
                         <span>extracted from quera</span>
                     </div>
                     <div className="right">
-                        <a href="https://github.com/necmttn/livetraces">GitHub</a>
-                        <a href="https://www.npmjs.com/package/livetraces">npm</a>
+                        <a href="https://github.com/necmttn/livetrace">GitHub</a>
+                        <a href="https://www.npmjs.com/package/livetrace">npm</a>
                         <a href="https://necmttn.com">@necmttn</a>
                     </div>
                 </div>

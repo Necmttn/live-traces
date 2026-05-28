@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "livetraces-workspace",
+      "name": "livetrace-workspace",
       "devDependencies": {
         "@types/node": "^22.10.0",
         "typescript": "^5.7.0",
@@ -15,7 +15,7 @@
       "dependencies": {
         "@fontsource-variable/inter": "^5.2.0",
         "@fontsource-variable/jetbrains-mono": "^5.2.0",
-        "livetraces": "workspace:*",
+        "livetrace": "workspace:*",
         "prism-react-renderer": "^2.4.0",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
@@ -34,7 +34,7 @@
       "version": "0.0.0",
       "dependencies": {
         "effect": "^3.18.0",
-        "livetraces": "workspace:*",
+        "livetrace": "workspace:*",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
       },
@@ -48,8 +48,8 @@
         "vite": "^7.0.0",
       },
     },
-    "packages/livetraces": {
-      "name": "livetraces",
+    "packages/livetrace": {
+      "name": "livetrace",
       "version": "0.1.0",
       "devDependencies": {
         "@types/react": "^19.0.0",
@@ -432,7 +432,7 @@
 
     "kleur": ["kleur@4.1.5", "", {}, "sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ=="],
 
-    "livetraces": ["livetraces@workspace:packages/livetraces"],
+    "livetrace": ["livetrace@workspace:packages/livetrace"],
 
     "loupe": ["loupe@3.2.1", "", {}, "sha512-CdzqowRJCeLU72bHvWqwRBBlLcMEtIvGrlvef74kMnV2AolS9Y8xUv1I0U/MNAWMhBlKIoyuEgoJ0t/bbwHbLQ=="],
 

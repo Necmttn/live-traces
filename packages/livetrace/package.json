@@ -1,5 +1,5 @@
 {
-  "name": "livetraces",
+  "name": "livetrace",
   "version": "0.1.0",
   "description": "Real-time Effect span streaming to frontend UIs. Stream traces from any backend to React with zero overhead.",
   "keywords": [
@@ -17,14 +17,14 @@
   ],
   "license": "Apache-2.0",
   "author": "Necmettin Karakaya <necmettin.karakaya@gmail.com>",
-  "homepage": "https://livetraces.necmttn.com",
+  "homepage": "https://livetrace.necmttn.com",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/necmttn/livetraces.git",
-    "directory": "packages/livetraces"
+    "url": "git+https://github.com/necmttn/livetrace.git",
+    "directory": "packages/livetrace"
   },
   "bugs": {
-    "url": "https://github.com/necmttn/livetraces/issues"
+    "url": "https://github.com/necmttn/livetrace/issues"
   },
   "type": "module",
   "sideEffects": false,
@@ -52,6 +52,14 @@
     "./transports/sse": {
       "types": "./dist/src/transports/sse.d.ts",
       "import": "./dist/src/transports/sse.js"
+    },
+    "./transports/ws": {
+      "types": "./dist/src/transports/ws.d.ts",
+      "import": "./dist/src/transports/ws.js"
+    },
+    "./transports/durable": {
+      "types": "./dist/src/transports/durable.d.ts",
+      "import": "./dist/src/transports/durable.js"
     }
   },
   "main": "./dist/index.js",

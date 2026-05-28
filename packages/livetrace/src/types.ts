@@ -1,11 +1,11 @@
 /**
- * livetraces — Wire Format Types
+ * livetrace — Wire Format Types
  *
  * Plain TypeScript types with zero dependencies.
  * Any backend (Go, Python, Rust, Node) can emit these as JSON
  * and the React frontend will render them.
  *
- * Import from "livetraces/types" — no Effect required.
+ * Import from "livetrace/types" — no Effect required.
  */
 
 // ============================================================================

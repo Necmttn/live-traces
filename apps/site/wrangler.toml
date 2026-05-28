@@ -1,8 +1,8 @@
-name = "livetraces-site"
+name = "livetrace-site"
 compatibility_date = "2026-01-01"
 
 routes = [
-  { pattern = "livetraces.necmttn.com", custom_domain = true }
+  { pattern = "livetrace.necmttn.com", custom_domain = true }
 ]
 
 # Cloudflare Worker that serves the built static assets.

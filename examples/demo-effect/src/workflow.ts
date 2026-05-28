@@ -7,7 +7,7 @@
  */
 import * as Effect from "effect/Effect";
 
-import { step, withTrace } from "livetraces";
+import { step, withTrace } from "livetrace";
 
 const sleep = (ms: number) => Effect.sleep(`${ms} millis`);
 

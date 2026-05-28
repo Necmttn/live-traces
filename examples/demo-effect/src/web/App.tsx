@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { useActiveTraces } from "livetraces/react";
+import { useActiveTraces } from "livetrace/react";
 
 import { TraceCard } from "./TraceCard.js";
 import { connect, triggerRun } from "./sse.js";
@@ -26,7 +26,7 @@ export function App() {
     return (
         <div style={{ maxWidth: 880, margin: "0 auto", padding: "48px 24px" }}>
             <header style={{ marginBottom: 32 }}>
-                <h1 style={{ margin: 0, fontSize: 32, letterSpacing: -0.5 }}>livetraces · demo</h1>
+                <h1 style={{ margin: 0, fontSize: 32, letterSpacing: -0.5 }}>livetrace · demo</h1>
                 <p style={{ color: "var(--muted)", marginTop: 8, fontSize: 15 }}>
                     Bun + Effect server streaming spans over SSE → React store → this UI. Click a button to start a workflow and watch it execute.
                 </p>

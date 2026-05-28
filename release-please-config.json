@@ -6,8 +6,8 @@
   "include-component-in-tag": true,
   "separate-pull-requests": false,
   "packages": {
-    "packages/livetraces": {
-      "package-name": "livetraces",
+    "packages/livetrace": {
+      "package-name": "livetrace",
       "changelog-path": "CHANGELOG.md"
     }
   },

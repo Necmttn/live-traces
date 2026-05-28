@@ -1,12 +1,12 @@
 /**
- * livetraces
+ * livetrace
  *
  * Real-time Effect span streaming to frontend UIs.
  *
  * Sub-exports:
- * - "livetraces"        — Effect Tracer decorator (this file)
- * - "livetraces/types"  — Plain TS types, zero deps
- * - "livetraces/react"  — React store + hooks, no Effect dep
+ * - "livetrace"        — Effect Tracer decorator (this file)
+ * - "livetrace/types"  — Plain TS types, zero deps
+ * - "livetrace/react"  — React store + hooks, no Effect dep
  */
 
 // Core tracer

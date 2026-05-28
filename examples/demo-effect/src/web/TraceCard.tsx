@@ -1,4 +1,4 @@
-import { useTrace, useTraceSteps } from "livetraces/react";
+import { useTrace, useTraceSteps } from "livetrace/react";
 
 const STATUS_COLOR: Record<string, string> = {
     running: "var(--accent)",

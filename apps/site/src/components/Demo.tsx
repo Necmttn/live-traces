@@ -6,10 +6,10 @@
  * Both kinds flow through the package's real TraceStore + hooks.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { SpanNode } from "livetraces/react";
+import type { SpanNode } from "livetrace/react";
 
-import type { TraceEvent } from "livetraces/types";
-import { getTraceStore, useActiveTraces, useTrace, useTraceSteps } from "livetraces/react";
+import type { TraceEvent } from "livetrace/types";
+import { getTraceStore, useActiveTraces, useTrace, useTraceSteps } from "livetrace/react";
 
 import { CORPUS, preview } from "./corpus.js";
 import { Typewriter } from "./Typewriter.js";

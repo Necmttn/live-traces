@@ -14,7 +14,7 @@ import { CORPUS, preview } from "./corpus.js";
 import { Typewriter } from "./Typewriter.js";
 
 const SOURCE = `import { Effect } from "effect";
-import { withTrace, step } from "livetraces";
+import { withTrace, step } from "livetrace";
 
 export const processDocument = (docId: string, chunks: string[]) =>
     Effect.gen(function* () {

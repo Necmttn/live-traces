@@ -1,28 +1,28 @@
-# livetraces
+# livetrace
 
 > Real-time Effect span streaming to frontend UIs. Stream traces from any backend to React with zero overhead.
 
-[![npm version](https://img.shields.io/npm/v/livetraces.svg)](https://www.npmjs.com/package/livetraces)
+[![npm version](https://img.shields.io/npm/v/livetrace.svg)](https://www.npmjs.com/package/livetrace)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![CI](https://github.com/necmttn/livetraces/actions/workflows/ci.yml/badge.svg)](https://github.com/necmttn/livetraces/actions/workflows/ci.yml)
+[![CI](https://github.com/necmttn/livetrace/actions/workflows/ci.yml/badge.svg)](https://github.com/necmttn/livetrace/actions/workflows/ci.yml)
 
-`livetraces` turns the [Effect](https://effect.website) tracer into a live UI feed. Wrap a workflow in `withTrace`, mount the React hooks, and the user sees every span - start, end, log event - as it happens.
+`livetrace` turns the [Effect](https://effect.website) tracer into a live UI feed. Wrap a workflow in `withTrace`, mount the React hooks, and the user sees every span - start, end, log event - as it happens.
 
 - **Drop-in Tracer decorator.** Composes with `@effect/opentelemetry`. Both OTel and live traces emit in parallel.
 - **Wire format is plain JSON.** Backends in Go, Python, Rust can produce events; React consumes them the same way.
 - **Pluggable transport.** SSE included. Console for dev. WebSocket / durable queues are 30 lines.
-- **Zero-Effect frontend.** `livetraces/react` is just `useSyncExternalStore` + a reducer. Works in any React 18+ app.
+- **Zero-Effect frontend.** `livetrace/react` is just `useSyncExternalStore` + a reducer. Works in any React 18+ app.
 
-→ Landing page & live demo: **[livetraces.necmttn.com](https://livetraces.necmttn.com)**
+→ Landing page & live demo: **[livetrace.necmttn.com](https://livetrace.necmttn.com)**
 
 ---
 
 ## Install
 
 ```bash
-bun add livetraces effect
+bun add livetrace effect
 # or
-npm install livetraces effect
+npm install livetrace effect
 ```
 
 React consumers also need `react@>=18`.
@@ -38,8 +38,8 @@ import {
     withTrace,
     step,
     liveTraceLogger,
-} from "livetraces";
-import { SSETransportLayer as SSE } from "livetraces/transports/sse";
+} from "livetrace";
+import { SSETransportLayer as SSE } from "livetrace/transports/sse";
 
 // 1. Compose the layer
 const TraceLive = LiveTraceLayer.pipe(
@@ -69,7 +69,7 @@ Effect.runPromise(processDocument("report.pdf").pipe(Effect.provide(TraceLive)))
 ## React frontend
 
 ```tsx
-import { useActiveTraces, useTrace, useTraceSteps } from "livetraces/react";
+import { useActiveTraces, useTrace, useTraceSteps } from "livetrace/react";
 
 function ActivityPanel() {
     const traces = useActiveTraces();
@@ -108,8 +108,8 @@ function TraceCard({ traceId }: { traceId: string }) {
 Connect the store to a transport (SSE shown):
 
 ```ts
-import { getTraceStore } from "livetraces/react";
-import type { TraceEvent } from "livetraces/types";
+import { getTraceStore } from "livetrace/react";
+import type { TraceEvent } from "livetrace/types";
 
 const es = new EventSource(`/traces/user/${userId}`);
 es.onmessage = (msg) => {
@@ -121,7 +121,7 @@ es.onmessage = (msg) => {
 ## SSE server (Bun / Node)
 
 ```ts
-import { getSseBroker } from "livetraces/transports/sse";
+import { getSseBroker } from "livetrace/transports/sse";
 
 // Bun's built-in server
 Bun.serve({
@@ -162,7 +162,7 @@ Bun.serve({
 
 ## Composing with OpenTelemetry
 
-`LiveTraceLayer` wraps the current tracer instead of replacing it. Build OTel **outermost** (so it sets the tracer first), then livetraces wraps it.
+`LiveTraceLayer` wraps the current tracer instead of replacing it. Build OTel **outermost** (so it sets the tracer first), then livetrace wraps it.
 
 ```ts
 const Env = ServerLive.pipe(
@@ -182,11 +182,11 @@ Events are a discriminated union on `_tag`:
 type TraceEvent = TraceStart | SpanStart | SpanEnd | SpanEvent | TraceEnd;
 ```
 
-See [`src/types.ts`](./src/types.ts) for the full schema. The `livetraces/types` sub-export is **dependency-free** - any backend can emit these as JSON.
+See [`src/types.ts`](./src/types.ts) for the full schema. The `livetrace/types` sub-export is **dependency-free** - any backend can emit these as JSON.
 
 ## Why?
 
-OpenTelemetry is built for ops dashboards. `livetraces` is built for **user-facing** progress UIs - the difference between "show this user what their AI agent is doing right now" and "Datadog has my p99". Same span data, different rendering target.
+OpenTelemetry is built for ops dashboards. `livetrace` is built for **user-facing** progress UIs - the difference between "show this user what their AI agent is doing right now" and "Datadog has my p99". Same span data, different rendering target.
 
 ## License
 
