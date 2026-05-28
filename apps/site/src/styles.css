@@ -372,10 +372,27 @@ pre {
     border: 1px solid var(--line);
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
     padding: 20px;
-    min-height: 380px;
+    /* Fixed height locks page layout so nothing below shifts as the
+       trace card grows. Inner content scrolls if it overflows. */
+    height: 720px;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 14px;
+    scroll-behavior: smooth;
+}
+
+.stream-canvas::-webkit-scrollbar {
+    width: 6px;
+}
+
+.stream-canvas::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.stream-canvas::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border-radius: 3px;
 }
 
 .stream-empty {
@@ -1606,6 +1623,160 @@ pre {
     50% {
         opacity: 0;
     }
+}
+
+/* ============================================================
+   Transports - code tabs + card grid
+   ============================================================ */
+
+.transport-tabs {
+    /* Reuse code-col base via className; extend with tabbed bar */
+}
+
+.transport-bar {
+    padding: 0 14px 0 0;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+}
+
+.transport-tabstrip {
+    display: flex;
+    flex: 1 1 auto;
+}
+
+.transport-tab {
+    appearance: none;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.3px;
+    padding: 10px 14px;
+    border-bottom: 1px solid transparent;
+    cursor: pointer;
+    transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.transport-tab:hover {
+    color: var(--fg-strong);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.transport-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+.transports-section {
+    padding: 64px 0 16px;
+    border-top: 1px solid var(--line);
+}
+
+.transports-lede {
+    color: var(--muted);
+    margin: 0 0 28px;
+    max-width: 640px;
+    font-size: 14.5px;
+}
+
+.transport-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+}
+
+@media (min-width: 760px) {
+    .transport-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.transport-card {
+    border: 1px solid var(--line);
+    background: var(--bg-1);
+    border-radius: var(--radius-lg);
+    padding: 18px 18px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.transport-card:hover {
+    border-color: var(--accent-line);
+    background:
+        linear-gradient(180deg, rgba(0, 212, 255, 0.03), transparent 60%),
+        var(--bg-1);
+}
+
+.transport-card header {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.transport-card-tag {
+    display: inline-block;
+    align-self: flex-start;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-line);
+    padding: 2px 8px;
+    border-radius: 3px;
+}
+
+.transport-card header h3 {
+    margin: 0;
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--fg-strong);
+    line-height: 1.4;
+    letter-spacing: -0.1px;
+}
+
+.transport-traits {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 14px;
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+}
+
+.transport-traits > div {
+    display: contents;
+}
+
+.transport-traits dt {
+    color: var(--muted-3);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.6px;
+    padding-top: 2px;
+}
+
+.transport-traits dd {
+    margin: 0;
+    color: var(--fg);
+}
+
+.transport-import {
+    margin-top: auto;
+    padding: 6px 10px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    word-break: break-all;
 }
 
 /* ============================================================
