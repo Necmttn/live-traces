@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+    <defs>
+        <radialGradient id="glow" cx="85%" cy="20%" r="60%">
+            <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.18" />
+            <stop offset="100%" stop-color="#00d4ff" stop-opacity="0" />
+        </radialGradient>
+        <linearGradient id="line-grad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#00d4ff" stop-opacity="0.55" />
+            <stop offset="1" stop-color="#00d4ff" stop-opacity="1" />
+        </linearGradient>
+        <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+            <path d="M 48 0 L 0 0 0 48" fill="none" stroke="#ffffff" stroke-opacity="0.025" stroke-width="1" />
+        </pattern>
+    </defs>
+
+    <!-- Background -->
+    <rect width="1200" height="630" fill="#0b0c0e" />
+    <rect width="1200" height="630" fill="url(#grid)" />
+    <rect width="1200" height="630" fill="url(#glow)" />
+
+    <!-- Brand strip -->
+    <g transform="translate(72, 72)">
+        <circle cx="0" cy="6" r="5" fill="#00d4ff" />
+        <circle cx="14" cy="6" r="5" fill="#00d4ff" opacity="0.65" />
+        <circle cx="28" cy="6" r="5" fill="#00d4ff" opacity="0.3" />
+        <text x="48" y="12" font-family="JetBrains Mono, ui-monospace, monospace" font-size="20" fill="#f5f6f8">livetrace</text>
+        <text x="170" y="12" font-family="JetBrains Mono, ui-monospace, monospace" font-size="15" fill="#5b6068">v0.1.0</text>
+    </g>
+
+    <!-- Eyebrow -->
+    <g transform="translate(72, 184)">
+        <circle cx="6" cy="8" r="5" fill="#00d4ff" />
+        <text x="22" y="14" font-family="JetBrains Mono, ui-monospace, monospace" font-size="16" fill="#8b8f96" letter-spacing="1.5">LIVE · EFFECT SPANS → REACT · ZERO-OVERHEAD</text>
+    </g>
+
+    <!-- Headline -->
+    <text x="72" y="290" font-family="Inter, -apple-system, sans-serif" font-size="64" font-weight="500" fill="#f5f6f8" letter-spacing="-1.5">Show your users</text>
+    <text x="72" y="362" font-family="Inter, -apple-system, sans-serif" font-size="64" font-weight="500" fill="#f5f6f8" letter-spacing="-1.5">what your backend</text>
+    <text x="72" y="434" font-family="Inter, -apple-system, sans-serif" font-size="64" font-weight="500" fill="#00d4ff" letter-spacing="-1.5">is actually doing.</text>
+
+    <!-- Sub -->
+    <text x="72" y="498" font-family="Inter, -apple-system, sans-serif" font-size="22" fill="#8b8f96">Wrap any Effect workflow. Spans stream to the browser as they happen.</text>
+
+    <!-- Mini trace card mockup, lower right -->
+    <g transform="translate(72, 540)">
+        <rect width="1056" height="52" rx="8" fill="#16181c" stroke="#22262c" />
+        <text x="22" y="32" font-family="JetBrains Mono, ui-monospace, monospace" font-size="14" fill="#5b6068">$</text>
+        <text x="42" y="32" font-family="JetBrains Mono, ui-monospace, monospace" font-size="14" fill="#e6e7e9">bun add</text>
+        <text x="118" y="32" font-family="JetBrains Mono, ui-monospace, monospace" font-size="14" fill="#00d4ff">livetrace effect</text>
+        <text x="1034" y="32" font-family="JetBrains Mono, ui-monospace, monospace" font-size="13" fill="#5b6068" text-anchor="end">livetrace.necmttn.com</text>
+    </g>
+
+    <!-- Right-side trace card glimpse (above the install bar) -->
+    <g transform="translate(700, 110)">
+        <!-- Card frame -->
+        <rect width="428" height="380" rx="10" fill="#16181c" stroke="#22262c" />
+        <!-- Card header -->
+        <rect x="0" y="0" width="428" height="44" fill="#1c1f24" />
+        <rect x="0" y="44" width="428" height="1" fill="#22262c" />
+        <circle cx="22" cy="22" r="4.5" fill="#2f343c" />
+        <circle cx="38" cy="22" r="4.5" fill="#2f343c" />
+        <circle cx="54" cy="22" r="4.5" fill="#2f343c" />
+        <text x="78" y="27" font-family="JetBrains Mono, ui-monospace, monospace" font-size="12" fill="#8b8f96">processDocument</text>
+        <text x="402" y="27" font-family="JetBrains Mono, ui-monospace, monospace" font-size="11" fill="#00d4ff" text-anchor="end">● RUNNING</text>
+
+        <!-- Step rows -->
+        <g font-family="Inter, sans-serif" font-size="14" fill="#e6e7e9">
+            <!-- Parse -->
+            <circle cx="28" cy="84" r="4.5" fill="#5bd17f" />
+            <text x="48" y="89">Parse</text>
+            <rect x="270" y="80" width="120" height="6" rx="3" fill="#1c1f24" />
+            <rect x="270" y="80" width="120" height="6" rx="3" fill="#5bd17f" />
+            <text x="402" y="89" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b8f96">720ms</text>
+
+            <!-- Chunk -->
+            <circle cx="28" cy="128" r="4.5" fill="#5bd17f" />
+            <text x="48" y="133">Chunk</text>
+            <rect x="270" y="124" width="120" height="6" rx="3" fill="#1c1f24" />
+            <rect x="270" y="124" width="120" height="6" rx="3" fill="#5bd17f" />
+            <text x="402" y="133" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b8f96">360ms</text>
+
+            <!-- Embed (running) -->
+            <circle cx="28" cy="172" r="6" fill="#00d4ff" />
+            <circle cx="28" cy="172" r="9" fill="none" stroke="#00d4ff" stroke-opacity="0.3" />
+            <text x="48" y="177" fill="#f5f6f8">Embed</text>
+            <text x="118" y="177" font-family="JetBrains Mono, monospace" font-size="11" fill="#5b6068">21/32 · embed 21/32</text>
+            <rect x="270" y="168" width="120" height="6" rx="3" fill="#1c1f24" />
+            <rect x="270" y="168" width="80" height="6" rx="3" fill="#00d4ff" />
+            <text x="402" y="177" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="11" fill="#00d4ff">1180ms</text>
+
+            <!-- Index pending -->
+            <circle cx="28" cy="216" r="4.5" fill="none" stroke="#3d4148" stroke-width="1.5" />
+            <text x="48" y="221" fill="#8b8f96">Index</text>
+            <rect x="270" y="212" width="120" height="6" rx="3" fill="#1c1f24" />
+
+            <!-- Finalize pending -->
+            <circle cx="28" cy="260" r="4.5" fill="none" stroke="#3d4148" stroke-width="1.5" />
+            <text x="48" y="265" fill="#8b8f96">Finalize</text>
+            <rect x="270" y="256" width="120" height="6" rx="3" fill="#1c1f24" />
+        </g>
+
+        <!-- Log console -->
+        <rect x="14" y="294" width="400" height="74" rx="6" fill="#08090b" stroke="#22262c" />
+        <text x="26" y="312" font-family="JetBrains Mono, monospace" font-size="9" fill="#00d4ff" letter-spacing="0.5">EFFECT.LOG → SPANEVENT STREAM</text>
+        <g font-family="JetBrains Mono, monospace" font-size="11">
+            <text x="26" y="332" fill="#00d4ff">INFO</text>
+            <text x="62" y="332" fill="#e6e7e9">[parse] parsed 12 pages · 18,402 tokens</text>
+            <text x="26" y="350" fill="#ffb24a">WARN</text>
+            <text x="62" y="350" fill="#ffb24a">[embed] rate-limited · retrying in 240ms</text>
+        </g>
+    </g>
+</svg>

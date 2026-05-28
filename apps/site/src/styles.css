@@ -1369,7 +1369,7 @@ pre {
 
 .literate-source {
     position: relative;
-    padding: 18px 0;
+    padding: 26px 0;
     font-size: 12.5px;
     line-height: 1.45;
     overflow-x: auto;
@@ -1384,7 +1384,7 @@ pre {
 
 .literate-source pre {
     margin: 0;
-    padding: 0 18px;
+    padding: 0 28px;
     min-width: max-content;
 }
 
@@ -1398,7 +1398,7 @@ pre {
     position: absolute;
     left: 0;
     right: 0;
-    top: 18px;
+    top: 26px;
     height: 1lh;
     background: linear-gradient(90deg, rgba(0, 212, 255, 0.2), rgba(0, 212, 255, 0.06) 55%, transparent);
     border-left: 2px solid var(--accent);

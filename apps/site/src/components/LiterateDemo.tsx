@@ -21,36 +21,42 @@ import { Typewriter } from "./Typewriter.js";
 const SOURCE = `import { Effect } from "effect";
 import { withTrace, step } from "livetrace";
 
-export const processDocument = (docId: string, chunks: string[]) =>
+export const processDocument = (docId: string, pdf: Pdf) =>
     Effect.gen(function* () {
         yield* Effect.logInfo(\`opening \${docId}\`);
 
         yield* step("Parse")(
-            Effect.gen(function* () {
-                yield* Effect.logInfo("extracting text · 12 pages");
-            }),
+            Effect.forEach(pdf.pages, (page) =>
+                Effect.gen(function* () {
+                    yield* parsePage(page);
+                    yield* Effect.logInfo(\`page \${page.n}/\${pdf.pages.length}\`);
+                }),
+            ),
         );
 
         yield* step("Chunk")(
-            Effect.gen(function* () {
-                yield* Effect.logInfo("splitting · 512 · 64");
-            }),
+            Effect.forEach(pieces, (c, i) =>
+                Effect.logInfo(\`chunk \${i + 1}/\${pieces.length}\`),
+            ),
         );
 
         yield* step("Embed")(
-            Effect.gen(function* () {
-                for (const [i, chunk] of chunks.entries()) {
-                    yield* Effect.logInfo(
-                        \`embed \${i + 1}/\${chunks.length} "\${chunk}…"\`,
-                    );
-                }
-            }),
+            Effect.forEach(chunks, (c, i) =>
+                Effect.gen(function* () {
+                    yield* embedOne(c);
+                    yield* Effect.logInfo(\`embed \${i + 1}/\${chunks.length}\`);
+                }),
+                { concurrency: 4 },
+            ),
         );
 
         yield* step("Index")(
-            Effect.gen(function* () {
-                yield* Effect.logInfo("committed txn 0xa8f4");
-            }),
+            Effect.forEach(vectors, (v, i) =>
+                Effect.gen(function* () {
+                    yield* upsert(v);
+                    yield* Effect.logInfo(\`upsert \${i + 1}/\${vectors.length}\`);
+                }),
+            ),
         );
 
         yield* Effect.logInfo("workflow complete");
@@ -88,17 +94,23 @@ interface ChunkTile {
 
 type Workflow = "idle" | StepName | "done";
 
+type StepCounts = Record<StepName, number>;
+
+const ZERO_COUNTS: StepCounts = { Parse: 0, Chunk: 0, Embed: 0, Index: 0 };
+
 interface State {
     line: number;
     workflow: Workflow;
     completed: ReadonlyArray<StepName>;
     chunks: ReadonlyArray<ChunkTile>;
+    progress: StepCounts;
     runId: number;
 }
 
 type Action =
     | { type: "highlight"; line: number }
     | { type: "stepStart"; name: StepName | "done" }
+    | { type: "tick"; name: StepName; done: number }
     | { type: "stepDone"; name: StepName }
     | { type: "chunk"; idx: number; text: string }
     | { type: "reset"; runId: number };
@@ -109,12 +121,22 @@ function reducer(s: State, a: Action): State {
             return { ...s, line: a.line };
         case "stepStart":
             return { ...s, workflow: a.name, chunks: a.name === "Embed" ? [] : s.chunks };
+        case "tick":
+            return { ...s, progress: { ...s.progress, [a.name]: a.done } };
         case "stepDone":
-            return { ...s, completed: [...s.completed, a.name] };
+            return {
+                ...s,
+                completed: [...s.completed, a.name],
+                progress: { ...s.progress, [a.name]: STEP_META[a.name].total },
+            };
         case "chunk":
-            return { ...s, chunks: [...s.chunks, { id: cryptoId(), idx: a.idx, text: a.text }].slice(-5) };
+            return {
+                ...s,
+                chunks: [...s.chunks, { id: cryptoId(), idx: a.idx, text: a.text }].slice(-5),
+                progress: { ...s.progress, Embed: a.idx },
+            };
         case "reset":
-            return { line: 0, workflow: "idle", completed: [], chunks: [], runId: a.runId };
+            return { line: 0, workflow: "idle", completed: [], chunks: [], progress: ZERO_COUNTS, runId: a.runId };
     }
 }
 
@@ -135,36 +157,52 @@ function buildSchedule(chunks: ReadonlyArray<string>, runId: number): ReadonlyAr
     };
 
     push(0, { type: "reset", runId });
-    push(120, { type: "highlight", line: 6 });
+    push(140, { type: "highlight", line: 6 });
 
-    push(720, { type: "highlight", line: 8 });
+    // Parse - one tick per page
+    push(620, { type: "highlight", line: 8 });
     push(60, { type: "stepStart", name: "Parse" });
-    push(180, { type: "highlight", line: 10 });
-    push(700, { type: "stepDone", name: "Parse" });
+    const parseTotal = STEP_META.Parse.total;
+    for (let p = 1; p <= parseTotal; p++) {
+        push(70, { type: "highlight", line: 11 });
+        push(40, { type: "highlight", line: 12 });
+        push(20, { type: "tick", name: "Parse", done: p });
+    }
+    push(160, { type: "stepDone", name: "Parse" });
 
-    push(180, { type: "highlight", line: 14 });
+    // Chunk - one tick per piece
+    push(180, { type: "highlight", line: 17 });
     push(60, { type: "stepStart", name: "Chunk" });
-    push(160, { type: "highlight", line: 16 });
-    push(600, { type: "stepDone", name: "Chunk" });
+    const chunkTotal = STEP_META.Chunk.total;
+    for (let c = 1; c <= chunkTotal; c++) {
+        push(30, { type: "highlight", line: 19 });
+        push(15, { type: "tick", name: "Chunk", done: c });
+    }
+    push(160, { type: "stepDone", name: "Chunk" });
 
-    push(160, { type: "highlight", line: 20 });
+    // Embed - tick + chunk preview per iteration
+    push(180, { type: "highlight", line: 23 });
     push(60, { type: "stepStart", name: "Embed" });
-    push(140, { type: "highlight", line: 22 });
-
     chunks.forEach((c, i) => {
-        push(80, { type: "highlight", line: 23 });
-        push(60, { type: "highlight", line: 24 });
-        push(40, { type: "chunk", idx: i + 1, text: c });
+        push(140, { type: "highlight", line: 26 });
+        push(70, { type: "highlight", line: 27 });
+        push(30, { type: "chunk", idx: i + 1, text: c });
+        push(20, { type: "tick", name: "Embed", done: i + 1 });
     });
-
     push(220, { type: "stepDone", name: "Embed" });
 
-    push(140, { type: "highlight", line: 30 });
+    // Index - one tick per upsert
+    push(160, { type: "highlight", line: 33 });
     push(60, { type: "stepStart", name: "Index" });
-    push(160, { type: "highlight", line: 32 });
-    push(500, { type: "stepDone", name: "Index" });
+    const indexTotal = STEP_META.Index.total;
+    for (let u = 1; u <= indexTotal; u++) {
+        push(30, { type: "highlight", line: 36 });
+        push(15, { type: "highlight", line: 37 });
+        push(10, { type: "tick", name: "Index", done: u });
+    }
+    push(180, { type: "stepDone", name: "Index" });
 
-    push(180, { type: "highlight", line: 36 });
+    push(180, { type: "highlight", line: 42 });
     push(40, { type: "stepStart", name: "done" });
 
     return ticks;
@@ -175,6 +213,7 @@ const INITIAL: State = {
     workflow: "idle",
     completed: [],
     chunks: [],
+    progress: ZERO_COUNTS,
     runId: 0,
 };
 
@@ -268,30 +307,13 @@ export function LiterateDemo() {
               : `${state.workflow.toLowerCase()}…`;
     const statusClass = state.workflow === "done" ? "done" : "running";
 
-    /** Step display data - per-step count + progress %. */
+    /** Step display data - per-step count + progress %. Reads real ticks from state.progress. */
     function rowFor(name: StepName) {
         const meta = STEP_META[name];
         const isDone = state.completed.includes(name);
         const isCurrent = state.workflow === name;
-        let count: number;
-        let pct: number;
-        if (isDone) {
-            count = meta.total;
-            pct = 100;
-        } else if (isCurrent) {
-            if (name === "Embed") {
-                count = state.chunks.length;
-                pct = (count / meta.total) * 100;
-            } else {
-                // Time-based fake progress for steps without per-item events:
-                // ramp 0 → 100% across an approximate step duration.
-                count = Math.round(meta.total * 0.6);
-                pct = 60;
-            }
-        } else {
-            count = 0;
-            pct = 0;
-        }
+        const count = state.progress[name];
+        const pct = meta.total > 0 ? Math.min(100, (count / meta.total) * 100) : 0;
         return { meta, isDone, isCurrent, count, pct };
     }
 
@@ -391,9 +413,7 @@ export function LiterateDemo() {
                                 <div className="uv-step-head">
                                     <span className="uv-step-mark">{mark(i, isCurrent, isDone)}</span>
                                     <span className="uv-step-name">{name}</span>
-                                    <span className="uv-step-count">
-                                        {isCurrent && name !== "Embed" ? "running…" : `${count} / ${meta.total} · ${meta.label}`}
-                                    </span>
+                                    <span className="uv-step-count">{`${count} / ${meta.total} · ${meta.label}`}</span>
                                 </div>
                                 <div className="uv-bar">
                                     <div className="uv-bar-fill" style={{ width: `${pct}%` }} />
