@@ -6,6 +6,7 @@
  * Both kinds flow through the package's real TraceStore + hooks.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { SpanNode } from "live-traces/react";
 
 import type { TraceEvent } from "live-traces/types";
 import { getTraceStore, useActiveTraces, useTrace, useTraceSteps } from "live-traces/react";
@@ -71,7 +72,7 @@ function makeWorkflow(opts: { fail?: boolean; doc?: string; chunks?: number }): 
         steps: [
             {
                 name: "Parse",
-                durationMs: 720,
+                durationMs: 2200,
                 itemsLabel: "pages",
                 items: genItems("page", pages),
                 logs: [
@@ -81,7 +82,7 @@ function makeWorkflow(opts: { fail?: boolean; doc?: string; chunks?: number }): 
             },
             {
                 name: "Chunk",
-                durationMs: 360,
+                durationMs: 1400,
                 itemsLabel: "chunks",
                 items: genItems("chunk", chunks, (i) => ({ tokens: 480 + ((i * 37) % 240) })),
                 logs: [
@@ -91,7 +92,7 @@ function makeWorkflow(opts: { fail?: boolean; doc?: string; chunks?: number }): 
             },
             {
                 name: "Embed",
-                durationMs: 1180,
+                durationMs: 3600,
                 children: [{ name: "openai.embed", attrs: { "embeddings.model": "text-embedding-3-small" } }],
                 itemsLabel: "embeddings",
                 items: genItems("embed", chunks, (i) => ({ chunk: i + 1, dims: 1536 })),
@@ -103,7 +104,7 @@ function makeWorkflow(opts: { fail?: boolean; doc?: string; chunks?: number }): 
             },
             {
                 name: "Index",
-                durationMs: 460,
+                durationMs: 1500,
                 children: [{ name: "vector-store.upsert", attrs: { "db.system": "pgvector" } }],
                 itemsLabel: "upserts",
                 items: genItems("upsert", chunks),
@@ -124,7 +125,7 @@ function makeWorkflow(opts: { fail?: boolean; doc?: string; chunks?: number }): 
                 : [
                       {
                           name: "Finalize",
-                          durationMs: 140,
+                          durationMs: 500,
                           children: [{ name: "publish-event" }],
                           logs: [{ at: 0.3, level: "Info", msg: `workflow complete · 32 chunks searchable` }],
                       } as StepDef,
@@ -422,7 +423,7 @@ function TraceCard({ traceId }: { traceId: string }) {
     );
 }
 
-function Step({ step, maxDur }: { step: import("live-traces/react").SpanNode; maxDur: number }) {
+function Step({ step, maxDur }: { step: SpanNode; maxDur: number }) {
     const progressEvents = step.events.filter((e) => e.attributes?.["ui.kind"] === "progress");
     const totalItems = (progressEvents[0]?.attributes?.["total"] as number | undefined) ?? undefined;
     const done = progressEvents.length;
@@ -436,7 +437,7 @@ function Step({ step, maxDur }: { step: import("live-traces/react").SpanNode; ma
             : ((step.durationMs ?? 0) / maxDur) * 100;
 
     const recentProgress = progressEvents[progressEvents.length - 1];
-    const chunkText = recentProgress?.attributes?.["chunk.text"] as string | undefined;
+    const chunkFeed = useReadableChunks(step);
 
     return (
         <div>
@@ -466,12 +467,19 @@ function Step({ step, maxDur }: { step: import("live-traces/react").SpanNode; ma
                 </div>
                 <div className="dur">{step.durationMs != null ? `${step.durationMs.toFixed(0)}ms` : "…"}</div>
             </div>
-            {step.status === "running" && chunkText ? (
-                <div className="step-preview">
-                    <span className="preview-prefix">now</span>
-                    <span className="preview-text">
-                        "<Typewriter text={chunkText} cps={70} />"
-                    </span>
+            {step.status === "running" && chunkFeed.length > 0 ? (
+                <div className="chunk-reader">
+                    <div className="chunk-reader-label">
+                        <span className="lr-prefix">reading</span>
+                        <span className="lr-dot" />
+                    </div>
+                    <div className="chunk-reader-stack">
+                        {chunkFeed.map((c, i) => (
+                            <div key={c.id} className={`chunk-block depth-${i}`} style={{ opacity: 1 - i * 0.32 }}>
+                                {i === 0 ? <Typewriter text={c.text} cps={42} /> : c.text}
+                            </div>
+                        ))}
+                    </div>
                 </div>
             ) : null}
         </div>
@@ -508,6 +516,65 @@ function LogConsole({ logs, done }: { logs: ReadonlyArray<{ id: string; level: L
             </div>
         </div>
     );
+}
+
+/**
+ * Build a teleprompter feed of recent chunks for a running step. Returns
+ * the latest 3 chunks (newest first) with stable ids so the UI can stack
+ * them with the freshest one typing in and older ones faded out.
+ *
+ * Sampled on a slow cadence rather than every event - chunk events fire
+ * faster than a human can read, so we step at ~700ms intervals to give
+ * each chunk a readable hold time. When the step ends or its spanId
+ * changes, the feed resets.
+ */
+interface ChunkRead {
+    id: number;
+    text: string;
+}
+
+function useReadableChunks(step: SpanNode, cadenceMs = 700): ReadonlyArray<ChunkRead> {
+    const [chunks, setChunks] = useState<ReadonlyArray<ChunkRead>>([]);
+    const stepIdRef = useRef<string | null>(null);
+    const lastIndexRef = useRef<number>(-1);
+    const lastSampleAtRef = useRef<number>(0);
+    const idCounterRef = useRef<number>(0);
+
+    useEffect(() => {
+        if (step.status !== "running") {
+            setChunks([]);
+            stepIdRef.current = null;
+            lastIndexRef.current = -1;
+            lastSampleAtRef.current = 0;
+            return;
+        }
+        if (stepIdRef.current !== step.spanId) {
+            stepIdRef.current = step.spanId;
+            lastIndexRef.current = -1;
+            lastSampleAtRef.current = 0;
+            setChunks([]);
+        }
+
+        const now = Date.now();
+        if (now - lastSampleAtRef.current < cadenceMs) return;
+
+        const progressEvents = step.events.filter((e) => e.attributes?.["ui.kind"] === "progress");
+        if (progressEvents.length === 0) return;
+
+        const latest = progressEvents[progressEvents.length - 1]!;
+        const idx = (latest.attributes?.["index"] as number | undefined) ?? progressEvents.length;
+        if (idx === lastIndexRef.current) return;
+        const text = latest.attributes?.["chunk.text"] as string | undefined;
+        if (!text) return;
+
+        lastIndexRef.current = idx;
+        lastSampleAtRef.current = now;
+        idCounterRef.current += 1;
+        const nextId = idCounterRef.current;
+        setChunks((prev) => [{ id: nextId, text }, ...prev].slice(0, 3));
+    }, [step.spanId, step.status, step.events.length, cadenceMs]);
+
+    return chunks;
 }
 
 function formatTs(ms: number): string {

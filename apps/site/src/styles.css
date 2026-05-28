@@ -602,42 +602,82 @@ pre {
     font-variant-numeric: tabular-nums;
 }
 
-.step-preview {
+/* ----- Multi-line chunk teleprompter shown beneath a running step ----- */
+.chunk-reader {
+    margin: 6px 0 12px 30px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.015);
+    border: 1px solid var(--line);
+    border-left: 2px solid var(--accent);
+    border-radius: var(--radius);
     display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 4px;
-    padding: 4px 0 8px 30px;
-    font-size: 12px;
-    color: var(--muted);
-    font-family: var(--mono);
-    animation: log-fadein 0.18s ease-out;
+    gap: 14px;
+    align-items: stretch;
     min-width: 0;
 }
 
-.step-preview .preview-prefix {
+.chunk-reader-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    padding-top: 1px;
+}
+
+.chunk-reader-label .lr-prefix {
     color: var(--accent);
     text-transform: uppercase;
+    font-family: var(--mono);
     font-size: 9.5px;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.7px;
     padding: 2px 6px;
     border: 1px solid var(--accent-line);
     background: var(--accent-soft);
     border-radius: 3px;
     line-height: 12px;
-    flex: 0 0 auto;
-    width: fit-content;
 }
 
-.step-preview .preview-text {
-    color: var(--fg);
-    font-style: italic;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 12px;
+.chunk-reader-label .lr-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+    animation: brand-pulse 1.4s ease-in-out infinite;
+}
+
+.chunk-reader-stack {
     flex: 1 1 auto;
     min-width: 0;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 8px;
+}
+
+.chunk-block {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--fg);
+    word-break: break-word;
+    overflow: hidden;
+    transition: opacity 0.3s ease;
+}
+
+.chunk-block.depth-0 {
+    color: var(--fg);
+}
+
+.chunk-block.depth-1,
+.chunk-block.depth-2 {
+    color: var(--muted);
+    border-top: 1px dashed var(--line);
+    padding-top: 8px;
+    /* Show only first 2 lines for older entries */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 
 .stream-more {
