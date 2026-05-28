@@ -1,13 +1,11 @@
 name = "live-traces-site"
 compatibility_date = "2026-01-01"
 
+routes = [
+  { pattern = "live-traces.necmttn.com", custom_domain = true }
+]
+
 # Cloudflare Worker that serves the built static assets.
-# Configure DNS: live-traces.necmttn.com → this worker (Custom Domain in Cloudflare dashboard, or via routes).
 [assets]
 directory = "./dist"
 not_found_handling = "single-page-application"
-
-# Uncomment after creating the Custom Domain in the Cloudflare dashboard:
-# routes = [
-#   { pattern = "live-traces.necmttn.com", custom_domain = true }
-# ]
