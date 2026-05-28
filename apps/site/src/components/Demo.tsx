@@ -355,16 +355,7 @@ export function Demo() {
                 {traces.length === 0 ? (
                     <div className="stream-empty">no traces · click ▶ to fire one</div>
                 ) : (
-                    <>
-                        {traces.slice(0, 2).map((t) => (
-                            <TraceCard key={t.traceId} traceId={t.traceId} />
-                        ))}
-                        {traces.length > 2 ? (
-                            <div className="stream-more">
-                                +{traces.length - 2} more in the sidebar
-                            </div>
-                        ) : null}
-                    </>
+                    <TraceCard key={traces[0]!.traceId} traceId={traces[0]!.traceId} />
                 )}
             </div>
         </div>
@@ -426,7 +417,7 @@ function TraceCard({ traceId }: { traceId: string }) {
                 ))}
             </div>
 
-            {logs.length > 0 ? <LogConsole logs={logs} done={trace.status !== "running"} /> : null}
+            <LogConsole logs={logs} done={trace.status !== "running"} />
         </div>
     );
 }
