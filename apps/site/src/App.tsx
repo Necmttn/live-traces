@@ -58,7 +58,7 @@ export function App() {
                             <div className="n">2</div>
                             <div className="body">
                                 <h4>Spans batch + ship over a transport</h4>
-                                <p>Pick one Layer: <code>SSETransportLayer</code>, <code>WSTransportLayer</code>, or <code>DurableTransportLayer</code>. Same <code>TraceTransport</code> interface - swap without touching workflow code.</p>
+                                <p>Pick one Layer: <code>SSETransportLayer</code>, <code>WSTransportLayer</code>, or <code>DurableStreamsTransportLayer</code>. Same <code>TraceTransport</code> interface - swap without touching workflow code.</p>
                             </div>
                         </div>
                         <div className="note">

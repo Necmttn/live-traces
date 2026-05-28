@@ -10,7 +10,7 @@
 
 - **Drop-in Tracer decorator.** Composes with `@effect/opentelemetry`. Both OTel and live traces emit in parallel.
 - **Wire format is plain JSON.** Backends in Go, Python, Rust can produce events; React consumes them the same way.
-- **Pluggable transport.** SSE included. Console for dev. WebSocket / durable queues are 30 lines.
+- **Pluggable transport.** SSE, WebSocket, and [`@durable-streams/client`](https://www.npmjs.com/package/@durable-streams/client)-backed resumable streams ship in the box. Console for dev.
 - **Zero-Effect frontend.** `livetrace/react` is just `useSyncExternalStore` + a reducer. Works in any React 18+ app.
 
 → Landing page & live demo: **[livetrace.necmttn.com](https://livetrace.necmttn.com)**

@@ -74,34 +74,40 @@ wss.on("connection", (socket, req) => {
 });`,
     },
     {
-        id: "durable",
-        label: "Durable",
+        id: "durable-streams",
+        label: "Durable Streams",
         path: "src/runtime.ts",
-        tagline: "Append-only log. Resume from cursor after disconnect. Multi-pod safe.",
+        tagline: "Append-only HTTP NDJSON. Resume from any offset, multi-pod safe.",
         traits: [
-            ["latency", "p50 ~30ms"],
-            ["direction", "pull + tail"],
-            ["persistence", "Redis Streams / DO / NATS"],
+            ["backend", "@durable-streams/client"],
+            ["direction", "POST append · GET catch-up + live"],
+            ["persistence", "your durable-streams server"],
             ["scale-out", "any pod, any region"],
         ],
         code: `import { Layer, Logger } from "effect";
 import { LiveTraceLayer, TraceSinkLive, liveTraceLogger } from "livetrace";
-import { DurableTransportLayer, getDurableLog } from "livetrace/transports/durable";
+import { DurableStreamsTransportLayer } from "livetrace/transports/durable-streams";
 
+// Peer dep: @durable-streams/client (HTTP NDJSON, resumable via opaque offsets)
 export const TraceLive = LiveTraceLayer.pipe(
     Layer.provide(TraceSinkLive({ flushIntervalMs: 100 })),
-    Layer.provide(DurableTransportLayer),
+    Layer.provide(DurableStreamsTransportLayer({
+        baseUrl: process.env.DURABLE_STREAMS_URL!,
+        headers: { Authorization: () => \`Bearer \${getToken()}\` },
+    })),
     Layer.provideMerge(Logger.replaceScoped(Logger.defaultLogger, liveTraceLogger)),
 );
 
-// Resume from cursor
-app.get("/traces/:type/:id", async (req, res) => {
-    const cursor = Number(req.headers["last-event-id"] ?? 0);
-    const { entries, nextCursor } = await getDurableLog().readFrom(
-        { type: req.params.type, id: req.params.id }, cursor,
-    );
-    for (const e of entries) res.write(\`id: \${e.seq}\\ndata: \${JSON.stringify(e.events)}\\n\\n\`);
-    // ...tail live from nextCursor
+// Clients read with the same @durable-streams/client - resume from offset
+import { stream } from "@durable-streams/client";
+const res = await stream<TraceEvent>({
+    url: \`\${baseUrl}/trace/\${scope.type}/\${scope.id}\`,
+    offset: savedOffset ?? "-1",   // "-1" = start of stream
+    live: true,                    // SSE / long-poll auto-selected
+});
+res.subscribeJson(({ items, offset }) => {
+    for (const event of items) traceStore.dispatch(event);
+    save(offset); // resume from here on reconnect
 });`,
     },
 ];
@@ -139,7 +145,7 @@ export function TransportCards() {
             <div className="how-head">
                 <h2>Pick your transport</h2>
                 <div className="install">
-                    <b>livetrace</b>/transports/&#123;sse,ws,durable&#125;
+                    <b>livetrace</b>/transports/&#123;sse,ws,durable-streams&#125;
                 </div>
             </div>
             <p className="transports-lede">

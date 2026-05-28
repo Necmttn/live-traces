@@ -57,9 +57,9 @@
       "types": "./dist/src/transports/ws.d.ts",
       "import": "./dist/src/transports/ws.js"
     },
-    "./transports/durable": {
-      "types": "./dist/src/transports/durable.d.ts",
-      "import": "./dist/src/transports/durable.js"
+    "./transports/durable-streams": {
+      "types": "./dist/src/transports/durable-streams.d.ts",
+      "import": "./dist/src/transports/durable-streams.js"
     }
   },
   "main": "./dist/index.js",
@@ -74,15 +74,20 @@
     "prepublishOnly": "bun run clean && bun run build"
   },
   "peerDependencies": {
+    "@durable-streams/client": ">=0.2.0",
     "effect": ">=3.10.0",
     "react": ">=18"
   },
   "peerDependenciesMeta": {
+    "@durable-streams/client": {
+      "optional": true
+    },
     "react": {
       "optional": true
     }
   },
   "devDependencies": {
+    "@durable-streams/client": "0.2.3",
     "@types/react": "^19.0.0",
     "effect": "^3.18.0",
     "react": "^19.0.0",
