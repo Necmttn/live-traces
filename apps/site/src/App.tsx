@@ -24,9 +24,9 @@ export function App() {
                         <span style={{ color: "var(--muted-2)", fontSize: 12 }}>v0.1.0</span>
                     </div>
                     <div className="nav-meta">
+                        <a className="nav-link" href="/docs">docs</a>
                         <a className="nav-link" href="https://github.com/necmttn/livetrace">github</a>
                         <a className="nav-link" href="https://www.npmjs.com/package/livetrace">npm</a>
-                        <a className="nav-link" href="https://github.com/necmttn/livetrace/blob/main/packages/livetrace/README.md">readme</a>
                     </div>
                 </div>
             </nav>
@@ -192,8 +192,8 @@ function TraceCard({ traceId }) {
                     backend is doing - without the OpenTelemetry collector, without polling.
                 </p>
                 <div className="btn-row">
-                    <a className="btn primary" href="https://www.npmjs.com/package/livetrace">Install</a>
-                    <a className="btn secondary" href="https://github.com/necmttn/livetrace#readme">Read the docs</a>
+                    <a className="btn primary" href="/docs">Read the docs</a>
+                    <a className="btn secondary" href="https://www.npmjs.com/package/livetrace">Install from npm</a>
                 </div>
                 <div>
                     <span className="install-tag"><b>$</b> bun add livetrace effect</span>

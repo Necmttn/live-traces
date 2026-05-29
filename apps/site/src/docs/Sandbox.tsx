@@ -1,13 +1,15 @@
 /**
  * Sandbox: tabbed source viewer + launch buttons for a livetrace example.
  *
- * Inline StackBlitz/CodeSandbox iframes don't reliably boot when embedded in
- * cross-origin docs sites with workspace-derived dependencies. The runnable
- * sandbox lives one click away - this component shows the actual file
- * contents inline so the user can read the code without leaving the page.
+ * Default view shows the actual files inline (shiki-highlighted). "Open in
+ * StackBlitz" / CodeSandbox opens the Node-compatible copy at
+ * `examples-sandbox/{path}/` - which runs `npm install && npm run dev`
+ * inside a WebContainer and serves the live demo.
  *
- * Files are loaded at build time via Vite's `?raw` import; new examples need
- * to be registered in `apps/site/src/docs/sandbox-sources.ts`.
+ * Inline iframe embedding stalls at "Mounting environment" in our docs
+ * cross-origin context (WebContainer requires `cross-origin-isolated`,
+ * which credentialless iframes don't fully satisfy here). Click-out is
+ * the reliable path; it boots in seconds on the StackBlitz tab.
  */
 import { useState } from "react";
 
@@ -43,7 +45,7 @@ export function Sandbox({ path, title }: SandboxProps) {
                     <a href={githubUrl} className="sandbox-link" target="_blank" rel="noreferrer">GitHub</a>
                     <a href={codesandboxUrl} className="sandbox-link" target="_blank" rel="noreferrer">CodeSandbox</a>
                     <a href={stackblitzUrl} className="sandbox-link sandbox-link-primary" target="_blank" rel="noreferrer">
-                        Open in StackBlitz ↗
+                        Run in StackBlitz ↗
                     </a>
                 </div>
             </div>
